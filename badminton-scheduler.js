@@ -146,12 +146,31 @@ class BadmintonScheduler {
     }
     
     enableGitHubSync(token) {
-        this.githubToken = token;
-        this.syncEnabled = true;
-        localStorage.setItem('github_token', token);
-        this.showNotification('GitHub sync enabled', 'success');
-        this.syncFromGitHub();
-        this.updateSyncStatus();
+        console.log('enableGitHubSync method called with token:', token ? 'Yes' : 'No');
+        try {
+            this.githubToken = token;
+            this.syncEnabled = true;
+            localStorage.setItem('github_token', token);
+            console.log('Token saved to localStorage');
+            
+            this.showNotification('GitHub sync enabled', 'success');
+            console.log('Notification shown');
+            
+            // Close the modal and switch to manage view
+            this.closeModal('githubSyncModal');
+            const setupContent = document.getElementById('syncSetupContent');
+            const manageContent = document.getElementById('syncManageContent');
+            if (setupContent) setupContent.style.display = 'none';
+            if (manageContent) manageContent.style.display = 'block';
+            
+            console.log('Starting sync from GitHub');
+            this.syncFromGitHub();
+            this.updateSyncStatus();
+            console.log('enableGitHubSync completed');
+        } catch (error) {
+            console.error('Error in enableGitHubSync:', error);
+            this.showNotification('Failed to enable GitHub sync', 'error');
+        }
     }
     
     disableGitHubSync() {

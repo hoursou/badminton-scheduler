@@ -542,6 +542,7 @@
                     </ul>
                 </div>
                 <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button type="button" onclick="testGitHubSync()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mr-2">Test</button>
                     <button type="button" onclick="enableGitHubSync()" class="btn-primary">Enable Sync</button>
                     <button type="button" onclick="closeModal('githubSyncModal')" class="btn-secondary">Cancel</button>
                 </div>
@@ -595,14 +596,67 @@
         }
         
         function enableGitHubSync() {
+            console.log('enableGitHubSync called');
             const token = document.getElementById('githubToken').value.trim();
+            console.log('Token entered:', token ? 'Yes' : 'No');
+            
             if (!token) {
-                scheduler.showNotification('Please enter your GitHub token', 'error');
+                console.log('No token entered');
+                if (window.scheduler) {
+                    scheduler.showNotification('Please enter your GitHub token', 'error');
+                } else {
+                    alert('Please enter your GitHub token');
+                }
                 return;
             }
             
-            scheduler.enableGitHubSync(token);
-            document.getElementById('githubToken').value = '';
+            // Wait for scheduler to be fully loaded
+            function waitForScheduler() {
+                if (window.scheduler && typeof scheduler.enableGitHubSync === 'function') {
+                    console.log('Calling scheduler.enableGitHubSync');
+                    scheduler.enableGitHubSync(token);
+                    document.getElementById('githubToken').value = '';
+                    console.log('Sync enabled successfully');
+                } else if (window.scheduler) {
+                    console.log('Scheduler found but method missing, listing available methods:');
+                    console.log('Available methods:', Object.getOwnPropertyNames(window.scheduler));
+                    console.log('Prototype methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.scheduler)));
+                    
+                    // Try direct method call
+                    try {
+                        const BadmintonScheduler = window.scheduler.constructor;
+                        if (BadmintonScheduler.prototype.enableGitHubSync) {
+                            console.log('Found method on prototype, calling directly');
+                            BadmintonScheduler.prototype.enableGitHubSync.call(window.scheduler, token);
+                            document.getElementById('githubToken').value = '';
+                        } else {
+                            alert('Error: enableGitHubSync method not found on scheduler');
+                        }
+                    } catch (error) {
+                        console.error('Error calling method:', error);
+                        alert('Error enabling sync: ' + error.message);
+                    }
+                } else {
+                    console.log('Scheduler not found, retrying...');
+                    setTimeout(waitForScheduler, 100);
+                }
+            }
+            
+            waitForScheduler();
+        }
+        
+        function testGitHubSync() {
+            console.log('Test button clicked');
+            const token = document.getElementById('githubToken').value.trim();
+            console.log('Token in input:', token ? 'Yes' : 'No');
+            
+            if (window.scheduler) {
+                console.log('Scheduler found:', typeof scheduler);
+                alert('Test passed! Scheduler is available. Try Enable Sync now.');
+            } else {
+                console.error('Scheduler not found');
+                alert('Error: Scheduler not found. Check console for details.');
+            }
         }
         
         function disableGitHubSync() {
