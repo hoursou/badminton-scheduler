@@ -357,8 +357,8 @@
                             <button onclick="openCreatePairModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm">
                                 <i class="fas fa-users mr-1"></i>Create Pair
                             </button>
-                            <button onclick="openGitHubSyncModal()" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg text-sm">
-                                <i class="fab fa-github mr-1"></i>Sync
+                            <button onclick="openGitHubSyncModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg text-sm">
+                                <i class="fas fa-cloud mr-1"></i>Cloud
                             </button>
                         </div>
                     </div>
@@ -396,9 +396,6 @@
                             </button>
                             <button onclick="clearAllSessions()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm">
                                 <i class="fas fa-trash mr-1"></i>Clear All
-                            </button>
-                            <button onclick="scheduler.syncToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm">
-                                <i class="fas fa-cloud-upload-alt mr-1"></i>Save
                             </button>
                         </div>
                     </div>
@@ -519,11 +516,26 @@
             <h3 class="text-2xl font-bold mb-4">GitHub Sync Setup</h3>
             <div id="syncSetupContent">
                 <div class="mb-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                        <p class="text-blue-800 text-sm font-medium">
+                            <i class="fas fa-cloud mr-2"></i>Enable automatic real-time sync across all devices
+                        </p>
+                    </div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">GitHub Personal Access Token</label>
                     <input type="password" id="githubToken" placeholder="ghp_..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                     <p class="text-xs text-gray-500 mt-2">
                         Get your token from: <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline">GitHub Settings → Tokens</a>
                     </p>
+                </div>
+                <div class="mb-4">
+                    <h4 class="font-medium text-gray-700 mb-2">✨ Automatic Features:</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• <strong>Real-time sync</strong> - Changes appear instantly on other devices</li>
+                        <li>• <strong>Auto-save</strong> - No manual saving required</li>
+                        <li>• <strong>Offline support</strong> - Works without internet</li>
+                        <li>• <strong>Version history</strong> - All changes saved in GitHub</li>
+                        <li>• <strong>One-time setup</strong> - Token saved for future use</li>
+                    </ul>
                 </div>
                 <div class="mb-4">
                     <h4 class="font-medium text-gray-700 mb-2">Required Token Permissions:</h4>
@@ -532,18 +544,10 @@
                         <li>✓ repo:status (Access commit status)</li>
                     </ul>
                 </div>
-                <div class="mb-4">
-                    <h4 class="font-medium text-gray-700 mb-2">How it works:</h4>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Data stored as JSON in your repository</li>
-                        <li>• Automatic sync across devices</li>
-                        <li>• Version history included</li>
-                        <li>• Works offline with localStorage fallback</li>
-                    </ul>
-                </div>
                 <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <button type="button" onclick="testGitHubSync()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm mr-2">Test</button>
-                    <button type="button" onclick="enableGitHubSync()" class="btn-primary">Enable Sync</button>
+                    <button type="button" onclick="enableGitHubSync()" class="btn-primary w-full">
+                        <i class="fas fa-cloud-upload-alt mr-2"></i>Enable Auto-Sync
+                    </button>
                     <button type="button" onclick="closeModal('githubSyncModal')" class="btn-secondary">Cancel</button>
                 </div>
             </div>
@@ -551,19 +555,17 @@
                 <div class="mb-4">
                     <div class="bg-green-50 border border-green-200 rounded-lg p-3">
                         <p class="text-green-800 text-sm">
-                            <i class="fas fa-check-circle mr-2"></i>GitHub sync is enabled
+                            <i class="fas fa-check-circle mr-2"></i>✅ Auto-sync is active
                         </p>
+                        <p class="text-green-700 text-xs mt-1">Changes automatically sync across all devices</p>
                     </div>
                 </div>
                 <div class="mb-4">
-                    <h4 class="font-medium text-gray-700 mb-2">Sync Options:</h4>
-                    <div class="space-y-2">
-                        <button onclick="scheduler.syncFromGitHub()" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-                            <i class="fas fa-cloud-download-alt mr-2"></i>Sync from GitHub
-                        </button>
-                        <button onclick="scheduler.syncToGitHub()" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
-                            <i class="fas fa-cloud-upload-alt mr-2"></i>Sync to GitHub
-                        </button>
+                    <h4 class="font-medium text-gray-700 mb-2">🔄 Sync Status:</h4>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-sm text-gray-600">• Polling every 30 seconds for changes</p>
+                        <p class="text-sm text-gray-600">• Auto-saves when you make changes</p>
+                        <p class="text-sm text-gray-600">• Real-time updates from other devices</p>
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">

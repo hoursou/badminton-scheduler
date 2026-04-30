@@ -14,6 +14,9 @@ class BadmintonScheduler {
         this.dataFile = 'badminton-data.json';
         this.syncEnabled = !!this.githubToken;
         this.lastSyncTime = localStorage.getItem('last_sync_time') || null;
+        this.lastRemoteUpdate = localStorage.getItem('last_remote_update') || null;
+        this.syncInterval = null;
+        this.syncPollingFrequency = 30000; // 30 seconds
         
         this.initializeElements();
         this.bindEvents();
@@ -22,7 +25,7 @@ class BadmintonScheduler {
         
         // Auto-sync if enabled
         if (this.syncEnabled) {
-            this.syncFromGitHub();
+            this.startAutoSync();
         }
     }
     
@@ -45,8 +48,7 @@ class BadmintonScheduler {
     // GitHub API Methods
     async syncToGitHub() {
         if (!this.syncEnabled) {
-            this.showNotification('GitHub sync not enabled', 'warning');
-            return;
+            return; // Silent fail if sync not enabled
         }
         
         try {
@@ -79,7 +81,7 @@ class BadmintonScheduler {
                     'Accept': 'application/vnd.github.v3+json'
                 },
                 body: JSON.stringify({
-                    message: `Update badminton scheduler data - ${new Date().toLocaleString()}`,
+                    message: `Auto-sync update - ${new Date().toLocaleString()}`,
                     content: btoa(JSON.stringify(data, null, 2)),
                     sha: sha
                 })
@@ -88,14 +90,14 @@ class BadmintonScheduler {
             if (putResponse.ok) {
                 this.lastSyncTime = new Date().toISOString();
                 localStorage.setItem('last_sync_time', this.lastSyncTime);
-                this.showNotification('Data synced to GitHub successfully', 'success');
                 this.updateSyncStatus();
+                console.log('Auto-sync to GitHub completed');
             } else {
                 throw new Error('Failed to sync to GitHub');
             }
         } catch (error) {
-            console.error('GitHub sync error:', error);
-            this.showNotification('Failed to sync to GitHub', 'error');
+            console.error('Auto-sync error:', error);
+            // Silent fail - don't show notifications for auto-sync errors
         }
     }
     
@@ -153,7 +155,7 @@ class BadmintonScheduler {
             localStorage.setItem('github_token', token);
             console.log('Token saved to localStorage');
             
-            this.showNotification('GitHub sync enabled', 'success');
+            this.showNotification('Auto-sync enabled - Real-time updates active', 'success');
             console.log('Notification shown');
             
             // Close the modal and switch to manage view
@@ -163,8 +165,8 @@ class BadmintonScheduler {
             if (setupContent) setupContent.style.display = 'none';
             if (manageContent) manageContent.style.display = 'block';
             
-            console.log('Starting sync from GitHub');
-            this.syncFromGitHub();
+            console.log('Starting auto-sync');
+            this.startAutoSync();
             this.updateSyncStatus();
             console.log('enableGitHubSync completed');
         } catch (error) {
@@ -173,12 +175,86 @@ class BadmintonScheduler {
         }
     }
     
+    startAutoSync() {
+        // Clear any existing interval
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+        
+        // Initial sync
+        this.syncFromGitHub();
+        
+        // Start polling for changes
+        this.syncInterval = setInterval(() => {
+            this.checkForRemoteChanges();
+        }, this.syncPollingFrequency);
+        
+        console.log('Auto-sync started, polling every', this.syncPollingFrequency / 1000, 'seconds');
+    }
+    
+    stopAutoSync() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+            this.syncInterval = null;
+            console.log('Auto-sync stopped');
+        }
+    }
+    
+    async checkForRemoteChanges() {
+        if (!this.syncEnabled) return;
+        
+        try {
+            const response = await fetch(`https://api.github.com/repos/${this.githubRepo}/contents/${this.dataFile}`, {
+                headers: {
+                    'Authorization': `token ${this.githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'If-Modified-Since': this.lastRemoteUpdate || ''
+                }
+            });
+            
+            if (response.status === 304) {
+                // No changes
+                return;
+            }
+            
+            if (response.ok) {
+                const fileData = await response.json();
+                const data = JSON.parse(atob(fileData.content));
+                
+                // Check if remote data is newer
+                const localLastUpdated = localStorage.getItem('last_updated') || '1970-01-01T00:00:00.000Z';
+                if (data.lastUpdated > localLastUpdated) {
+                    console.log('Remote changes detected, syncing...');
+                    this.players = data.players || [];
+                    this.pairs = data.pairs || [];
+                    this.sessions = data.sessions || [];
+                    
+                    // Update local storage
+                    this.saveToLocalStorage();
+                    localStorage.setItem('last_remote_update', fileData.last_modified);
+                    localStorage.setItem('last_updated', data.lastUpdated);
+                    
+                    this.render();
+                    this.showNotification('🔄 Auto-synced: Changes from other device', 'info');
+                }
+                
+                this.lastSyncTime = new Date().toISOString();
+                localStorage.setItem('last_sync_time', this.lastSyncTime);
+                this.updateSyncStatus();
+            }
+        } catch (error) {
+            console.log('Check for changes failed, continuing...');
+        }
+    }
+    
     disableGitHubSync() {
+        this.stopAutoSync();
         this.syncEnabled = false;
         this.githubToken = '';
         localStorage.removeItem('github_token');
         localStorage.removeItem('last_sync_time');
-        this.showNotification('GitHub sync disabled', 'info');
+        localStorage.removeItem('last_remote_update');
+        this.showNotification('Auto-sync disabled', 'info');
         this.updateSyncStatus();
     }
     
