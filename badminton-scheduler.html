@@ -529,6 +529,9 @@
                         <i class="fas fa-rocket mr-2"></i>Enable Zero-Setup Sync
                     </button>
                     <p class="text-center text-xs text-gray-500 mt-2">⚡ Instant setup • No tokens • Works everywhere</p>
+                    <button type="button" onclick="testZeroSetupSync()" class="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-bug mr-2"></i>Debug Test (Desktop)
+                    </button>
                 </div>
                 
                 <div class="border-t pt-4">
@@ -620,23 +623,59 @@
         }
         
         function enableZeroSetupSync() {
-            console.log('enableZeroSetupSync called');
+            console.log('enableZeroSetupSync called on', navigator.userAgent);
+            console.log('Window scheduler available:', !!window.scheduler);
+            
+            // Check if we're on desktop
+            const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)));
+            console.log('Is desktop browser:', isDesktop);
             
             // Wait for scheduler to be fully loaded
             function waitForScheduler() {
-                if (window.scheduler && typeof scheduler.enableZeroSetupSync === 'function') {
-                    console.log('Calling scheduler.enableZeroSetupSync');
-                    scheduler.enableZeroSetupSync();
-                    console.log('Zero-setup sync enabled successfully');
-                } else if (window.scheduler) {
-                    console.log('Scheduler found but method missing, retrying...');
-                    setTimeout(waitForScheduler, 100);
+                console.log('waitForScheduler called');
+                console.log('window.scheduler exists:', !!window.scheduler);
+                
+                if (window.scheduler) {
+                    console.log('Scheduler found, checking methods...');
+                    console.log('Available methods:', Object.getOwnPropertyNames(window.scheduler));
+                    console.log('enableZeroSetupSync method exists:', typeof scheduler.enableZeroSetupSync);
+                    
+                    if (typeof scheduler.enableZeroSetupSync === 'function') {
+                        console.log('Calling scheduler.enableZeroSetupSync');
+                        try {
+                            scheduler.enableZeroSetupSync();
+                            console.log('Zero-setup sync enabled successfully');
+                        } catch (error) {
+                            console.error('Error calling enableZeroSetupSync:', error);
+                            alert('Error enabling sync: ' + error.message);
+                        }
+                    } else {
+                        console.log('enableZeroSetupSync method not found, checking prototype...');
+                        const proto = Object.getPrototypeOf(window.scheduler);
+                        console.log('Prototype methods:', Object.getOwnPropertyNames(proto));
+                        console.log('enableZeroSetupSync on prototype:', typeof proto.enableZeroSetupSync);
+                        
+                        if (typeof proto.enableZeroSetupSync === 'function') {
+                            console.log('Calling method from prototype');
+                            try {
+                                proto.enableZeroSetupSync.call(window.scheduler);
+                                console.log('Zero-setup sync enabled successfully via prototype');
+                            } catch (error) {
+                                console.error('Error calling prototype method:', error);
+                                alert('Error enabling sync: ' + error.message);
+                            }
+                        } else {
+                            console.error('enableZeroSetupSync method not found anywhere');
+                            alert('Error: Zero-setup sync method not available. Please refresh the page and try again.');
+                        }
+                    }
                 } else {
-                    console.log('Scheduler not found, retrying...');
+                    console.log('Scheduler not found, retrying in 100ms...');
                     setTimeout(waitForScheduler, 100);
                 }
             }
             
+            // Start waiting
             waitForScheduler();
         }
         
@@ -685,6 +724,34 @@
             } else {
                 console.error('Scheduler not found');
                 alert('Error: Scheduler not found. Check console for details.');
+            }
+        }
+        
+        function testZeroSetupSync() {
+            console.log('=== Zero-Setup Sync Debug Test ===');
+            console.log('Browser:', navigator.userAgent);
+            console.log('Scheduler exists:', !!window.scheduler);
+            
+            if (window.scheduler) {
+                console.log('Scheduler type:', typeof window.scheduler);
+                console.log('Constructor:', window.scheduler.constructor.name);
+                console.log('Available methods:', Object.getOwnPropertyNames(window.scheduler));
+                console.log('enableZeroSetupSync exists:', typeof window.scheduler.enableZeroSetupSync);
+                
+                const proto = Object.getPrototypeOf(window.scheduler);
+                console.log('Prototype methods:', Object.getOwnPropertyNames(proto));
+                console.log('enableZeroSetupSync on prototype:', typeof proto.enableZeroSetupSync);
+                
+                if (typeof window.scheduler.enableZeroSetupSync === 'function') {
+                    console.log('Method found! Should work.');
+                    alert('Method found! Try the main Enable button.');
+                } else {
+                    console.log('Method not found - this is the issue');
+                    alert('Method not found - this explains the issue. Check console for details.');
+                }
+            } else {
+                console.log('Scheduler not loaded - this is the issue');
+                alert('Scheduler not loaded - this explains the issue. Refresh the page.');
             }
         }
         
