@@ -233,29 +233,8 @@ class BadmintonScheduler {
     
     saveToLocalStorage() {
         localStorage.setItem('badminton_players', JSON.stringify(this.players));
-            this.syncMethod = 'github';
-            this.syncEnabled = true;
-            localStorage.setItem('github_token', token);
-            localStorage.setItem('sync_method', 'github');
-            console.log('Token saved to localStorage');
-            
-            this.showNotification('GitHub sync enabled - Real-time updates active', 'success');
-            
-            // Close the modal and switch to manage view
-            this.closeModal('githubSyncModal');
-            const setupContent = document.getElementById('syncSetupContent');
-            const manageContent = document.getElementById('syncManageContent');
-            if (setupContent) setupContent.style.display = 'none';
-            if (manageContent) manageContent.style.display = 'block';
-            
-            console.log('Starting GitHub auto-sync');
-            this.startAutoSync();
-            this.updateSyncStatus();
-            console.log('GitHub sync completed');
-        } catch (error) {
-            console.error('Error in enableGitHubSync:', error);
-            this.showNotification('Failed to enable GitHub sync', 'error');
-        }
+        localStorage.setItem('badminton_pairs', JSON.stringify(this.pairs));
+        localStorage.setItem('badminton_sessions', JSON.stringify(this.sessions));
     }
     
     // No auto-sync - use manual methods
