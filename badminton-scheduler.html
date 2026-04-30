@@ -622,63 +622,7 @@
             scheduler.openModal('githubSyncModal');
         }
         
-        function enableZeroSetupSync() {
-            console.log('enableZeroSetupSync called on', navigator.userAgent);
-            console.log('Window scheduler available:', !!window.scheduler);
-            
-            // Check if we're on desktop
-            const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)));
-            console.log('Is desktop browser:', isDesktop);
-            
-            // Wait for scheduler to be fully loaded
-            function waitForScheduler() {
-                console.log('waitForScheduler called');
-                console.log('window.scheduler exists:', !!window.scheduler);
                 
-                if (window.scheduler) {
-                    console.log('Scheduler found, checking methods...');
-                    console.log('Available methods:', Object.getOwnPropertyNames(window.scheduler));
-                    console.log('enableZeroSetupSync method exists:', typeof scheduler.enableZeroSetupSync);
-                    
-                    if (typeof scheduler.enableZeroSetupSync === 'function') {
-                        console.log('Calling scheduler.enableZeroSetupSync');
-                        try {
-                            scheduler.enableZeroSetupSync();
-                            console.log('Zero-setup sync enabled successfully');
-                        } catch (error) {
-                            console.error('Error calling enableZeroSetupSync:', error);
-                            alert('Error enabling sync: ' + error.message);
-                        }
-                    } else {
-                        console.log('enableZeroSetupSync method not found, checking prototype...');
-                        const proto = Object.getPrototypeOf(window.scheduler);
-                        console.log('Prototype methods:', Object.getOwnPropertyNames(proto));
-                        console.log('enableZeroSetupSync on prototype:', typeof proto.enableZeroSetupSync);
-                        
-                        if (typeof proto.enableZeroSetupSync === 'function') {
-                            console.log('Calling method from prototype');
-                            try {
-                                proto.enableZeroSetupSync.call(window.scheduler);
-                                console.log('Zero-setup sync enabled successfully via prototype');
-                            } catch (error) {
-                                console.error('Error calling prototype method:', error);
-                                alert('Error enabling sync: ' + error.message);
-                            }
-                        } else {
-                            console.error('enableZeroSetupSync method not found anywhere');
-                            alert('Error: Zero-setup sync method not available. Please refresh the page and try again.');
-                        }
-                    }
-                } else {
-                    console.log('Scheduler not found, retrying in 100ms...');
-                    setTimeout(waitForScheduler, 100);
-                }
-            }
-            
-            // Start waiting
-            waitForScheduler();
-        }
-        
         function enableGitHubSync() {
             console.log('enableGitHubSync called');
             const token = document.getElementById('githubToken').value.trim();
@@ -753,6 +697,46 @@
                 console.log('Scheduler not loaded - this is the issue');
                 alert('Scheduler not loaded - this explains the issue. Refresh the page.');
             }
+        }
+        
+        function enableZeroSetupSync() {
+            console.log('enableZeroSetupSync called - direct implementation');
+            
+            // Direct implementation to avoid timing issues
+            function waitForScheduler() {
+                if (window.scheduler && typeof scheduler.enableZeroSetupSync === 'function') {
+                    console.log('Calling scheduler method directly');
+                    scheduler.enableZeroSetupSync();
+                } else if (window.scheduler) {
+                    console.log('Scheduler exists but method missing, implementing manually...');
+                    // Manual implementation
+                    try {
+                        scheduler.syncMethod = 'jsonbin';
+                        scheduler.syncEnabled = true;
+                        localStorage.setItem('sync_method', 'jsonbin');
+                        
+                        scheduler.showNotification('Zero-setup sync enabled - Real-time updates active', 'success');
+                        
+                        // Close modal and switch views
+                        scheduler.closeModal('githubSyncModal');
+                        const setupContent = document.getElementById('syncSetupContent');
+                        const manageContent = document.getElementById('syncManageContent');
+                        if (setupContent) setupContent.style.display = 'none';
+                        if (manageContent) manageContent.style.display = 'block';
+                        
+                        scheduler.startAutoSync();
+                        scheduler.updateSyncStatus();
+                        console.log('Zero-setup sync completed manually');
+                    } catch (error) {
+                        console.error('Manual implementation failed:', error);
+                        alert('Error enabling sync: ' + error.message);
+                    }
+                } else {
+                    setTimeout(waitForScheduler, 100);
+                }
+            }
+            
+            waitForScheduler();
         }
         
         function disableSync() {
