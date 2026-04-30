@@ -374,19 +374,34 @@ class BadmintonScheduler {
     }
     
     removePlayer(playerId) {
-        if (!confirm('Are you sure you want to remove this player?')) return;
+        // Find player name for confirmation
+        const player = this.players.find(p => p.id === playerId);
+        const playerName = player ? player.name : 'this player';
+        
+        if (!confirm(`Are you sure you want to remove ${playerName}?`)) return;
+        
+        console.log('Removing player:', playerId, playerName);
         
         this.players = this.players.filter(p => p.id !== playerId);
+        
         // Remove from pairs
+        const originalPairsCount = this.pairs.length;
         this.pairs = this.pairs.filter(pair => 
             pair.player1Id !== playerId && pair.player2Id !== playerId
         );
+        
+        const removedPairsCount = originalPairsCount - this.pairs.length;
         
         this.savePlayers();
         this.savePairs();
         this.render();
         
-        this.showNotification('Player removed successfully', 'success');
+        let message = `Player ${playerName} removed successfully`;
+        if (removedPairsCount > 0) {
+            message += ` (${removedPairsCount} pair${removedPairsCount > 1 ? 's' : ''} also removed)`;
+        }
+        
+        this.showNotification(message, 'success');
     }
     
     // Pair management
@@ -772,6 +787,42 @@ class BadmintonScheduler {
         }
     }
     
+    // Add pair to session via dropdown
+    addPairToSession(sessionId, courtId, matchIndex) {
+        const selectElement = document.getElementById(`pair-select-${sessionId}-${courtId}`);
+        const selectedPairId = selectElement.value;
+        
+        if (!selectedPairId) {
+            this.showNotification('Please select a pair', 'error');
+            return;
+        }
+        
+        const selectedPair = this.pairs.find(p => p.id === selectedPairId);
+        if (!selectedPair) {
+            this.showNotification('Pair not found', 'error');
+            return;
+        }
+        
+        const session = this.sessions.find(s => s.id === sessionId);
+        const court = session.courtsData.find(c => c.id === courtId);
+        
+        // Add the pair to the match
+        if (!court.matches[matchIndex]) {
+            court.matches[matchIndex] = { pairs: [], players: [] };
+        }
+        
+        court.matches[matchIndex].pairs.push(selectedPair);
+        
+        // Save and re-render
+        this.saveSessions();
+        this.render();
+        
+        // Reset dropdown
+        selectElement.value = '';
+        
+        this.showNotification(`Added ${selectedPair.name} to ${court.name}`, 'success');
+    }
+    
     // Enhanced touch event handlers for mobile drag and drop
     handleTouchStart(e, type) {
         const touch = e.touches[0];
@@ -956,7 +1007,7 @@ class BadmintonScheduler {
         this.elements.playersList.innerHTML = this.players.map(player => `
             <div class="player-card" draggable="true" data-id="${player.id}">
                 <div class="flex justify-between items-center">
-                    <div>
+                    <div class="flex-1">
                         <div class="font-semibold text-gray-800">${player.name}</div>
                         <div class="text-sm text-gray-600">
                             <span class="inline-block px-2 py-1 bg-${this.getSkillColor(player.skill)}-100 text-${this.getSkillColor(player.skill)}-800 text-xs rounded-full">
@@ -964,8 +1015,8 @@ class BadmintonScheduler {
                             </span>
                         </div>
                     </div>
-                    <button onclick="scheduler.removePlayer('${player.id}')" class="text-red-500 hover:text-red-700">
-                        <i class="fas fa-times"></i>
+                    <button onclick="scheduler.removePlayer('${player.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -1036,9 +1087,32 @@ class BadmintonScheduler {
     }
     
     renderCourt(session, court) {
+        const availablePairs = this.pairs.filter(pair => {
+            // Check if pair is already in any match in this court
+            return !court.matches.some(match => 
+                match.pairs && match.pairs.some(p => p.id === pair.id)
+            );
+        });
+        
         return `
             <div class="border border-gray-200 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-800 mb-3">${court.name}</h4>
+                
+                <!-- Add Pair Dropdown for Mobile -->
+                ${availablePairs.length > 0 ? `
+                    <div class="mb-3">
+                        <select id="pair-select-${session.id}-${court.id}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
+                            <option value="">Select a pair to add...</option>
+                            ${availablePairs.map(pair => `
+                                <option value="${pair.id}">${pair.name} (${pair.player1Name} & ${pair.player2Name})</option>
+                            `).join('')}
+                        </select>
+                        <button onclick="scheduler.addPairToSession('${session.id}', '${court.id}', '${court.matches.length}')" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm">
+                            <i class="fas fa-plus mr-1"></i>Add Pair
+                        </button>
+                    </div>
+                ` : ''}
+                
                 <div class="space-y-2">
                     ${court.matches.length === 0 ? `
                         <div class="session-slot" data-slot='${JSON.stringify({ sessionId: session.id, courtId: court.id, matchIndex: 0 })}'>
