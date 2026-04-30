@@ -327,6 +327,9 @@
                 <span class="bg-white text-purple-600 px-3 py-1 rounded-lg font-bold mr-3">GYZ</span>Badminton Scheduler
             </h1>
             <p class="text-gray-200">Manage players, create pairs, and schedule matches efficiently</p>
+            <div id="syncStatus" class="mt-2 text-xs text-gray-400">
+                <i class="fas fa-sync text-gray-400"></i> Local only
+            </div>
         </div>
 
         <!-- Main Content -->
@@ -353,6 +356,9 @@
                             </button>
                             <button onclick="openCreatePairModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm">
                                 <i class="fas fa-users mr-1"></i>Create Pair
+                            </button>
+                            <button onclick="openGitHubSyncModal()" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg text-sm">
+                                <i class="fab fa-github mr-1"></i>Sync
                             </button>
                         </div>
                     </div>
@@ -390,6 +396,9 @@
                             </button>
                             <button onclick="clearAllSessions()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm">
                                 <i class="fas fa-trash mr-1"></i>Clear All
+                            </button>
+                            <button onclick="scheduler.syncToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm">
+                                <i class="fas fa-cloud-upload-alt mr-1"></i>Save
                             </button>
                         </div>
                     </div>
@@ -504,6 +513,109 @@
         </div>
     </div>
 
+    <!-- GitHub Sync Modal -->
+    <div id="githubSyncModal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4">GitHub Sync Setup</h3>
+            <div id="syncSetupContent">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">GitHub Personal Access Token</label>
+                    <input type="password" id="githubToken" placeholder="ghp_..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    <p class="text-xs text-gray-500 mt-2">
+                        Get your token from: <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline">GitHub Settings → Tokens</a>
+                    </p>
+                </div>
+                <div class="mb-4">
+                    <h4 class="font-medium text-gray-700 mb-2">Required Token Permissions:</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>✓ repo (Full control of private repositories)</li>
+                        <li>✓ repo:status (Access commit status)</li>
+                    </ul>
+                </div>
+                <div class="mb-4">
+                    <h4 class="font-medium text-gray-700 mb-2">How it works:</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Data stored as JSON in your repository</li>
+                        <li>• Automatic sync across devices</li>
+                        <li>• Version history included</li>
+                        <li>• Works offline with localStorage fallback</li>
+                    </ul>
+                </div>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button type="button" onclick="enableGitHubSync()" class="btn-primary">Enable Sync</button>
+                    <button type="button" onclick="closeModal('githubSyncModal')" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+            <div id="syncManageContent" style="display: none;">
+                <div class="mb-4">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p class="text-green-800 text-sm">
+                            <i class="fas fa-check-circle mr-2"></i>GitHub sync is enabled
+                        </p>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <h4 class="font-medium text-gray-700 mb-2">Sync Options:</h4>
+                    <div class="space-y-2">
+                        <button onclick="scheduler.syncFromGitHub()" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-cloud-download-alt mr-2"></i>Sync from GitHub
+                        </button>
+                        <button onclick="scheduler.syncToGitHub()" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-cloud-upload-alt mr-2"></i>Sync to GitHub
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button type="button" onclick="disableGitHubSync()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-times mr-2"></i>Disable Sync
+                    </button>
+                    <button type="button" onclick="closeModal('githubSyncModal')" class="btn-secondary">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="badminton-scheduler.js"></script>
+    <script>
+        // Global functions for GitHub sync
+        function openGitHubSyncModal() {
+            const modal = document.getElementById('githubSyncModal');
+            const setupContent = document.getElementById('syncSetupContent');
+            const manageContent = document.getElementById('syncManageContent');
+            
+            if (scheduler.syncEnabled) {
+                setupContent.style.display = 'none';
+                manageContent.style.display = 'block';
+            } else {
+                setupContent.style.display = 'block';
+                manageContent.style.display = 'none';
+            }
+            
+            scheduler.openModal('githubSyncModal');
+        }
+        
+        function enableGitHubSync() {
+            const token = document.getElementById('githubToken').value.trim();
+            if (!token) {
+                scheduler.showNotification('Please enter your GitHub token', 'error');
+                return;
+            }
+            
+            scheduler.enableGitHubSync(token);
+            document.getElementById('githubToken').value = '';
+        }
+        
+        function disableGitHubSync() {
+            if (confirm('Are you sure you want to disable GitHub sync? Data will only be stored locally.')) {
+                scheduler.disableGitHubSync();
+                scheduler.closeModal('githubSyncModal');
+            }
+        }
+        
+        // Update sync status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            scheduler.updateSyncStatus();
+        });
+    </script>
 </body>
 </html>

@@ -8,10 +8,22 @@ class BadmintonScheduler {
         this.draggedItem = null;
         this.touchItem = null;
         
+        // GitHub API settings
+        this.githubToken = localStorage.getItem('github_token') || '';
+        this.githubRepo = 'hoursou/badminton-scheduler';
+        this.dataFile = 'badminton-data.json';
+        this.syncEnabled = !!this.githubToken;
+        this.lastSyncTime = localStorage.getItem('last_sync_time') || null;
+        
         this.initializeElements();
         this.bindEvents();
         this.render();
         this.initializeMobileView();
+        
+        // Auto-sync if enabled
+        if (this.syncEnabled) {
+            this.syncFromGitHub();
+        }
     }
     
     initializeElements() {
@@ -28,6 +40,144 @@ class BadmintonScheduler {
             playersPanel: document.getElementById('playersPanel'),
             sessionsPanel: document.getElementById('sessionsPanel')
         };
+    }
+    
+    // GitHub API Methods
+    async syncToGitHub() {
+        if (!this.syncEnabled) {
+            this.showNotification('GitHub sync not enabled', 'warning');
+            return;
+        }
+        
+        try {
+            const data = {
+                players: this.players,
+                pairs: this.pairs,
+                sessions: this.sessions,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            const response = await fetch(`https://api.github.com/repos/${this.githubRepo}/contents/${this.dataFile}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `token ${this.githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            let sha = '';
+            if (response.ok) {
+                const fileData = await response.json();
+                sha = fileData.sha;
+            }
+            
+            const putResponse = await fetch(`https://api.github.com/repos/${this.githubRepo}/contents/${this.dataFile}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${this.githubToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                    message: `Update badminton scheduler data - ${new Date().toLocaleString()}`,
+                    content: btoa(JSON.stringify(data, null, 2)),
+                    sha: sha
+                })
+            });
+            
+            if (putResponse.ok) {
+                this.lastSyncTime = new Date().toISOString();
+                localStorage.setItem('last_sync_time', this.lastSyncTime);
+                this.showNotification('Data synced to GitHub successfully', 'success');
+                this.updateSyncStatus();
+            } else {
+                throw new Error('Failed to sync to GitHub');
+            }
+        } catch (error) {
+            console.error('GitHub sync error:', error);
+            this.showNotification('Failed to sync to GitHub', 'error');
+        }
+    }
+    
+    async syncFromGitHub() {
+        if (!this.syncEnabled) return;
+        
+        try {
+            const response = await fetch(`https://api.github.com/repos/${this.githubRepo}/contents/${this.dataFile}`, {
+                headers: {
+                    'Authorization': `token ${this.githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (response.ok) {
+                const fileData = await response.json();
+                const data = JSON.parse(atob(fileData.content));
+                
+                // Check if remote data is newer
+                const localLastUpdated = localStorage.getItem('last_updated') || '1970-01-01T00:00:00.000Z';
+                if (data.lastUpdated > localLastUpdated) {
+                    this.players = data.players || [];
+                    this.pairs = data.pairs || [];
+                    this.sessions = data.sessions || [];
+                    
+                    // Update local storage
+                    this.saveToLocalStorage();
+                    localStorage.setItem('last_updated', data.lastUpdated);
+                    
+                    this.render();
+                    this.showNotification('Data synced from GitHub', 'success');
+                }
+                
+                this.lastSyncTime = new Date().toISOString();
+                localStorage.setItem('last_sync_time', this.lastSyncTime);
+                this.updateSyncStatus();
+            }
+        } catch (error) {
+            console.error('GitHub sync from error:', error);
+        }
+    }
+    
+    saveToLocalStorage() {
+        localStorage.setItem('badminton_players', JSON.stringify(this.players));
+        localStorage.setItem('badminton_pairs', JSON.stringify(this.pairs));
+        localStorage.setItem('badminton_sessions', JSON.stringify(this.sessions));
+        localStorage.setItem('last_updated', new Date().toISOString());
+    }
+    
+    enableGitHubSync(token) {
+        this.githubToken = token;
+        this.syncEnabled = true;
+        localStorage.setItem('github_token', token);
+        this.showNotification('GitHub sync enabled', 'success');
+        this.syncFromGitHub();
+        this.updateSyncStatus();
+    }
+    
+    disableGitHubSync() {
+        this.syncEnabled = false;
+        this.githubToken = '';
+        localStorage.removeItem('github_token');
+        localStorage.removeItem('last_sync_time');
+        this.showNotification('GitHub sync disabled', 'info');
+        this.updateSyncStatus();
+    }
+    
+    updateSyncStatus() {
+        const statusElement = document.getElementById('syncStatus');
+        if (statusElement) {
+            if (this.syncEnabled && this.lastSyncTime) {
+                const syncDate = new Date(this.lastSyncTime);
+                statusElement.innerHTML = `<i class="fas fa-sync-alt text-green-400"></i> Last sync: ${syncDate.toLocaleString()}`;
+                statusElement.className = 'text-xs text-gray-300';
+            } else if (this.syncEnabled) {
+                statusElement.innerHTML = '<i class="fas fa-sync-alt text-yellow-400"></i> Sync enabled';
+                statusElement.className = 'text-xs text-gray-300';
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-sync text-gray-400"></i> Local only';
+                statusElement.className = 'text-xs text-gray-400';
+            }
+        }
     }
     
     bindEvents() {
@@ -74,15 +224,24 @@ class BadmintonScheduler {
     }
     
     savePlayers() {
-        localStorage.setItem('badminton_players', JSON.stringify(this.players));
+        this.saveToLocalStorage();
+        if (this.syncEnabled) {
+            this.syncToGitHub();
+        }
     }
     
     savePairs() {
-        localStorage.setItem('badminton_pairs', JSON.stringify(this.pairs));
+        this.saveToLocalStorage();
+        if (this.syncEnabled) {
+            this.syncToGitHub();
+        }
     }
     
     saveSessions() {
-        localStorage.setItem('badminton_sessions', JSON.stringify(this.sessions));
+        this.saveToLocalStorage();
+        if (this.syncEnabled) {
+            this.syncToGitHub();
+        }
     }
     
     // Player management
