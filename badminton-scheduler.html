@@ -15,38 +15,39 @@
             min-height: 100vh;
             margin: 0;
             padding: 0;
+            font-size: 16px;
         }
         
-        @media (max-width: 768px) {
-            body {
-                font-size: 14px;
-            }
-            
-            .container {
-                padding: 0.5rem;
-            }
-            
-            h1 {
-                font-size: 1.75rem !important;
-            }
-            
-            h2 {
-                font-size: 1.25rem !important;
-            }
+        .container {
+            padding: 0.5rem;
+            max-width: 100%;
         }
         
-        @media (max-width: 480px) {
-            body {
-                font-size: 12px;
-            }
-            
-            h1 {
-                font-size: 1.5rem !important;
-            }
-            
-            .glass-morphism {
-                padding: 1rem !important;
-            }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.25rem;
+        }
+        
+        .glass-morphism {
+            padding: 0.75rem;
+            border-radius: 12px;
+            margin: 0.25rem;
+        }
+        
+        .modal-content {
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 16px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 12px 16px;
+            font-size: 16px;
+            min-height: 48px;
         }
         
         .glass-morphism {
@@ -67,20 +68,19 @@
         .player-card {
             background: white;
             border-radius: 12px;
-            padding: 12px;
-            margin: 8px;
+            padding: 10px;
+            margin: 4px;
             cursor: move;
             transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             touch-action: none;
-        }
-        
-        @media (max-width: 768px) {
-            .player-card {
-                padding: 8px;
-                margin: 4px;
-                font-size: 0.875rem;
-            }
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            font-size: 13px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
         }
         
         .player-card:hover {
@@ -97,20 +97,19 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 12px;
-            padding: 12px;
-            margin: 8px;
+            padding: 10px;
+            margin: 4px;
             cursor: move;
             transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             touch-action: none;
-        }
-        
-        @media (max-width: 768px) {
-            .pair-card {
-                padding: 8px;
-                margin: 4px;
-                font-size: 0.875rem;
-            }
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            font-size: 13px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
         }
         
         .pair-card:hover {
@@ -125,25 +124,12 @@
         
         .session-slot {
             background: rgba(255, 255, 255, 0.9);
-            border: 2px dashed #cbd5e0;
+            border: 1px dashed #cbd5e0;
             border-radius: 12px;
-            padding: 20px;
-            min-height: 100px;
+            padding: 12px;
+            min-height: 70px;
             transition: all 0.3s ease;
-        }
-        
-        @media (max-width: 768px) {
-            .session-slot {
-                padding: 12px;
-                min-height: 80px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .session-slot {
-                padding: 8px;
-                min-height: 60px;
-            }
+            position: relative;
         }
         
         .session-slot.drag-over {
@@ -236,25 +222,18 @@
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 24px;
+            padding: 12px 16px;
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s ease;
-        }
-        
-        @media (max-width: 768px) {
-            .btn-primary {
-                padding: 10px 20px;
-                font-size: 0.875rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .btn-primary {
-                padding: 8px 16px;
-                font-size: 0.75rem;
-                width: 100%;
-            }
+            border: none;
+            cursor: pointer;
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            width: 100%;
         }
         
         .btn-primary:hover {
@@ -265,25 +244,18 @@
         .btn-secondary {
             background: #e2e8f0;
             color: #4a5568;
-            padding: 12px 24px;
+            padding: 12px 16px;
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s ease;
-        }
-        
-        @media (max-width: 768px) {
-            .btn-secondary {
-                padding: 10px 20px;
-                font-size: 0.875rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .btn-secondary {
-                padding: 8px 16px;
-                font-size: 0.75rem;
-                width: 100%;
-            }
+            border: none;
+            cursor: pointer;
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            width: 100%;
         }
         
         .btn-secondary:hover {
@@ -292,14 +264,18 @@
         
         .notification {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            padding: 12px 16px;
             border-radius: 12px;
             color: white;
             font-weight: 500;
             z-index: 2000;
             animation: slideIn 0.3s ease-out;
+            max-width: 100%;
+            box-sizing: border-box;
+            font-size: 14px;
         }
         
         @keyframes slideIn {
@@ -332,91 +308,91 @@
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Mobile Layout Toggle -->
-            <div class="lg:hidden mb-4">
-                <div class="flex space-x-2">
-                    <button onclick="showMobileView('players')" id="mobilePlayersBtn" class="flex-1 bg-white/20 text-white px-3 py-2 rounded-lg text-sm">
-                        <i class="fas fa-users mr-1"></i>Players
-                    </button>
-                    <button onclick="showMobileView('sessions')" id="mobileSessionsBtn" class="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm">
-                        <i class="fas fa-calendar mr-1"></i>Sessions
-                    </button>
-                </div>
+        <!-- Mobile Layout Toggle -->
+        <div class="mb-4">
+            <div class="flex space-x-2">
+                <button onclick="showMobileView('players')" id="mobilePlayersBtn" class="flex-1 bg-white/20 text-white px-3 py-2 rounded-lg text-sm">
+                    <i class="fas fa-users mr-1"></i>Players
+                </button>
+                <button onclick="showMobileView('sessions')" id="mobileSessionsBtn" class="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm">
+                    <i class="fas fa-calendar mr-1"></i>Sessions
+                </button>
             </div>
-            <!-- Left Panel - Players/Pairs -->
-            <div class="lg:col-span-1" id="playersPanel">
-                <div class="glass-morphism p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-white">Players & Pairs</h2>
-                        <div class="space-x-2">
-                            <button onclick="openAddPlayerModal()" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm">
-                                <i class="fas fa-user-plus mr-1"></i>Add Player
-                            </button>
-                            <button onclick="openCreatePairModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm">
-                                <i class="fas fa-users mr-1"></i>Create Pair
-                            </button>
-                            <button onclick="openGitHubSyncModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg text-sm">
-                                <i class="fas fa-cloud mr-1"></i>Cloud
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- View Toggle -->
-                    <div class="flex space-x-2 mb-4">
-                        <button onclick="showView('players')" id="playersViewBtn" class="flex-1 bg-white/20 text-white px-3 py-2 rounded-lg text-sm">
-                            Players
+        </div>
+        
+        <!-- Players & Pairs Panel -->
+        <div id="playersPanel">
+            <div class="glass-morphism p-4">
+                <div class="mb-4">
+                    <h2 class="text-lg font-bold text-white mb-3">Players & Pairs</h2>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="openAddPlayerModal()" class="bg-green-500 hover:bg-green-600 text-white px-2 py-2 rounded-lg text-xs">
+                            <i class="fas fa-user-plus"></i>
+                            <span class="block text-xs mt-1">Add</span>
                         </button>
-                        <button onclick="showView('pairs')" id="pairsViewBtn" class="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm">
-                            Pairs
+                        <button onclick="openCreatePairModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-2 rounded-lg text-xs">
+                            <i class="fas fa-users"></i>
+                            <span class="block text-xs mt-1">Pair</span>
                         </button>
-                    </div>
-                    
-                    <!-- Players List -->
-                    <div id="playersList" class="space-y-2 max-h-96 overflow-y-auto">
-                        <!-- Players will be added here dynamically -->
-                    </div>
-                    
-                    <!-- Pairs List -->
-                    <div id="pairsList" class="space-y-2 max-h-96 overflow-y-auto" style="display: none;">
-                        <!-- Pairs will be added here dynamically -->
+                        <button onclick="openGitHubSyncModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-2 py-2 rounded-lg text-xs">
+                            <i class="fas fa-cloud"></i>
+                            <span class="block text-xs mt-1">Sync</span>
+                        </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Right Panel - Sessions -->
-            <div class="lg:col-span-2" id="sessionsPanel">
-                <div class="glass-morphism p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-white">Game Sessions</h2>
-                        <div class="space-x-2">
-                            <button onclick="openCreateSessionModal()" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm">
-                                <i class="fas fa-calendar-plus mr-1"></i>New Session
-                            </button>
-                            <button onclick="clearAllSessions()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm">
-                                <i class="fas fa-trash mr-1"></i>Clear All
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Sessions Container -->
-                    <div id="sessionsContainer" class="space-y-4">
-                        <!-- Sessions will be added here dynamically -->
-                    </div>
-                    
-                    <!-- Empty State -->
-                    <div id="emptyState" class="text-center py-12">
-                        <i class="fas fa-calendar-times text-6xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-300">No sessions scheduled yet</p>
-                        <button onclick="openCreateSessionModal()" class="mt-4 bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg">
-                            <i class="fas fa-plus mr-2"></i>Create First Session
-                        </button>
-                    </div>
+                
+                <!-- View Toggle -->
+                <div class="flex space-x-2 mb-4">
+                    <button onclick="showView('players')" id="playersViewBtn" class="flex-1 bg-white/20 text-white px-3 py-2 rounded-lg text-sm">
+                        Players
+                    </button>
+                    <button onclick="showView('pairs')" id="pairsViewBtn" class="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm">
+                        Pairs
+                    </button>
+                </div>
+                
+                <!-- Players List -->
+                <div id="playersList" class="space-y-2">
+                    <!-- Players will be added here dynamically -->
+                </div>
+                
+                <!-- Pairs List -->
+                <div id="pairsList" class="space-y-2" style="display: none;">
+                    <!-- Pairs will be added here dynamically -->
                 </div>
             </div>
         </div>
-    </div>
+        
+        <!-- Sessions Panel -->
+        <div id="sessionsPanel" style="display: none;">
+            <div class="glass-morphism p-4">
+                <div class="mb-4">
+                    <h2 class="text-lg font-bold text-white mb-3">Game Sessions</h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="openCreateSessionModal()" class="bg-purple-500 hover:bg-purple-600 text-white px-2 py-2 rounded-lg text-xs">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span class="block text-xs mt-1">New</span>
+                        </button>
+                        <button onclick="clearAllSessions()" class="bg-red-500 hover:bg-red-600 text-white px-2 py-2 rounded-lg text-xs">
+                            <i class="fas fa-trash"></i>
+                            <span class="block text-xs mt-1">Clear</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Sessions Container -->
+                <div id="sessionsContainer" class="space-y-4">
+                    <!-- Sessions will be added here dynamically -->
+                </div>
+                
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-8">
+                    <i class="fas fa-calendar-alt text-3xl text-white/50 mb-3"></i>
+                    <p class="text-white/70 text-sm">No sessions scheduled</p>
+                    <p class="text-white/50 text-xs">Create your first session</p>
+                </div>
+            </div>
+        </div>
 
     <!-- Add Player Modal -->
     <div id="addPlayerModal" class="modal">

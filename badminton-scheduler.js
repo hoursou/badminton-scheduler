@@ -773,23 +773,100 @@ class BadmintonScheduler {
         }
     }
     
-    // Mobile view management
+    // Mobile-only view management
     initializeMobileView() {
-        // Check if mobile and set initial view
-        if (window.innerWidth < 1024) {
-            this.showMobileView('players');
-        }
+        // Always start with players view
+        this.showMobileView('players');
+        this.addMobileOptimizations();
         
-        // Listen for resize events
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 1024) {
-                // Desktop view - show both panels
-                this.elements.playersPanel.style.display = 'block';
-                this.elements.sessionsPanel.style.display = 'block';
-            } else {
-                // Mobile view - show current mobile view
+        // Add mobile-specific event listeners
+        this.addMobileEventListeners();
+    }
+    
+    addMobileOptimizations() {
+        // Add mobile-specific CSS classes
+        document.body.classList.add('mobile-optimized');
+        
+        // Optimize touch targets
+        document.querySelectorAll('.player-card, .pair-card').forEach(card => {
+            card.style.minHeight = '44px'; // iOS touch target minimum
+        });
+        
+        // Add swipe gestures for navigation
+        this.addSwipeGestures();
+    }
+    
+    addMobileEventListeners() {
+        // Add orientation change handling
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.render();
                 this.showMobileView(this.mobileView);
+            }, 100);
+        });
+        
+        // Add pull-to-refresh functionality
+        this.addPullToRefresh();
+    }
+    
+    addSwipeGestures() {
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            this.handleSwipeGesture(touchStartX, touchEndX);
+        });
+    }
+    
+    handleSwipeGesture(startX, endX) {
+        const swipeThreshold = 50;
+        const diff = startX - endX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0 && this.mobileView === 'players') {
+                // Swipe left - switch to sessions
+                this.showMobileView('sessions');
+            } else if (diff < 0 && this.mobileView === 'sessions') {
+                // Swipe right - switch to players
+                this.showMobileView('players');
             }
+        }
+    }
+    
+    addPullToRefresh() {
+        let pullStartY = 0;
+        let pullDistance = 0;
+        let isPulling = false;
+        
+        document.addEventListener('touchstart', (e) => {
+            if (window.scrollY === 0) {
+                pullStartY = e.touches[0].clientY;
+                isPulling = true;
+            }
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (isPulling) {
+                pullDistance = e.touches[0].clientY - pullStartY;
+                if (pullDistance > 0 && pullDistance < 150) {
+                    document.body.style.transform = `translateY(${pullDistance * 0.5}px)`;
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', () => {
+            if (isPulling && pullDistance > 80) {
+                this.syncFromCloud(); // Refresh data
+                this.showNotification('Refreshing data...', 'info');
+            }
+            document.body.style.transform = '';
+            isPulling = false;
+            pullDistance = 0;
         });
     }
     
@@ -799,38 +876,64 @@ class BadmintonScheduler {
         const mobilePlayersBtn = document.getElementById('mobilePlayersBtn');
         const mobileSessionsBtn = document.getElementById('mobileSessionsBtn');
         
+        // Add transition effect
+        const panels = [this.elements.playersPanel, this.elements.sessionsPanel];
+        panels.forEach(panel => {
+            panel.style.transition = 'all 0.3s ease-in-out';
+        });
+        
         if (view === 'players') {
             this.elements.playersPanel.style.display = 'block';
             this.elements.sessionsPanel.style.display = 'none';
             if (mobilePlayersBtn) mobilePlayersBtn.className = 'flex-1 bg-white/20 text-white px-3 py-2 rounded-lg text-sm';
             if (mobileSessionsBtn) mobileSessionsBtn.className = 'flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm';
+            
+            // Add haptic feedback
+            if (navigator.vibrate) navigator.vibrate(30);
         } else {
             this.elements.playersPanel.style.display = 'none';
             this.elements.sessionsPanel.style.display = 'block';
             if (mobilePlayersBtn) mobilePlayersBtn.className = 'flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm';
             if (mobileSessionsBtn) mobileSessionsBtn.className = 'flex-1 bg-white/20 text-white px-3 py-2 rounded-lg text-sm';
+            
+            // Add haptic feedback
+            if (navigator.vibrate) navigator.vibrate(30);
         }
     }
     
-    // Touch event handlers for mobile drag and drop
+    // Enhanced touch event handlers for mobile drag and drop
     handleTouchStart(e, type) {
         const touch = e.touches[0];
         const target = e.target.closest('.player-card, .pair-card');
         
         if (target) {
+            e.preventDefault();
             this.touchItem = { type, id: target.getAttribute('data-id') };
             target.classList.add('dragging');
+            
+            // Add haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
             
             // Create a ghost image for visual feedback
             const ghost = target.cloneNode(true);
             ghost.style.position = 'fixed';
             ghost.style.pointerEvents = 'none';
-            ghost.style.opacity = '0.8';
+            ghost.style.opacity = '0.9';
             ghost.style.zIndex = '1000';
+            ghost.style.transform = 'scale(1.1)';
+            ghost.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+            ghost.style.borderRadius = '12px';
             ghost.id = 'touch-ghost';
             document.body.appendChild(ghost);
             
             this.updateGhostPosition(touch.clientX, touch.clientY);
+            
+            // Store touch start position for better gesture detection
+            this.touchStartX = touch.clientX;
+            this.touchStartY = touch.clientY;
+            this.touchStartTime = Date.now();
         }
     }
     
@@ -841,7 +944,7 @@ class BadmintonScheduler {
         const touch = e.touches[0];
         this.updateGhostPosition(touch.clientX, touch.clientY);
         
-        // Highlight drop zones
+        // Highlight drop zones with better visual feedback
         const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
         const dropZone = elementBelow?.closest('.session-slot');
         
@@ -851,6 +954,11 @@ class BadmintonScheduler {
         
         if (dropZone) {
             dropZone.classList.add('drag-over');
+            // Add haptic feedback when over valid drop zone
+            if (navigator.vibrate && !this.lastVibrateTime || Date.now() - this.lastVibrateTime > 200) {
+                navigator.vibrate(30);
+                this.lastVibrateTime = Date.now();
+            }
         }
     }
     
@@ -861,18 +969,33 @@ class BadmintonScheduler {
         const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
         const dropZone = elementBelow?.closest('.session-slot');
         
-        // Remove ghost image
+        // Calculate touch duration and distance for gesture detection
+        const touchDuration = Date.now() - this.touchStartTime;
+        const touchDistance = Math.sqrt(
+            Math.pow(touch.clientX - this.touchStartX, 2) + 
+            Math.pow(touch.clientY - this.touchStartY, 2)
+        );
+        
+        // Remove ghost image with animation
         const ghost = document.getElementById('touch-ghost');
-        if (ghost) ghost.remove();
+        if (ghost) {
+            ghost.style.transition = 'all 0.2s ease-out';
+            ghost.style.opacity = '0';
+            ghost.style.transform = 'scale(0.8)';
+            setTimeout(() => ghost.remove(), 200);
+        }
         
         // Remove dragging class
         document.querySelectorAll('.player-card, .pair-card').forEach(card => {
             card.classList.remove('dragging');
         });
         
-        // Handle drop
-        if (dropZone) {
+        // Handle drop with haptic feedback
+        if (dropZone && touchDistance > 10) { // Minimum distance to consider it a drag
             this.handleTouchDrop({ target: dropZone });
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 50, 50]); // Success vibration pattern
+            }
         }
         
         // Clear drop zone highlights
@@ -881,6 +1004,10 @@ class BadmintonScheduler {
         });
         
         this.touchItem = null;
+        this.touchStartX = null;
+        this.touchStartY = null;
+        this.touchStartTime = null;
+        this.lastVibrateTime = null;
     }
     
     handleTouchOver(e) {
@@ -934,6 +1061,8 @@ class BadmintonScheduler {
     updateGhostPosition(x, y) {
         const ghost = document.getElementById('touch-ghost');
         if (ghost) {
+            // Add smooth transition and better positioning
+            ghost.style.transition = 'none';
             ghost.style.left = (x - ghost.offsetWidth / 2) + 'px';
             ghost.style.top = (y - ghost.offsetHeight / 2) + 'px';
         }
