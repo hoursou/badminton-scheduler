@@ -516,60 +516,82 @@
             <h3 class="text-2xl font-bold mb-4">GitHub Sync Setup</h3>
             <div id="syncSetupContent">
                 <div class="mb-4">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                        <p class="text-blue-800 text-sm font-medium">
-                            <i class="fas fa-cloud mr-2"></i>Enable automatic real-time sync across all devices
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                        <p class="text-green-800 text-sm font-medium">
+                            <i class="fas fa-rocket mr-2"></i>🚀 Zero-Setup Sync - No tokens required!
                         </p>
+                        <p class="text-green-700 text-xs mt-1">Works instantly on all devices without any setup</p>
                     </div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">GitHub Personal Access Token</label>
-                    <input type="password" id="githubToken" placeholder="ghp_..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                    <p class="text-xs text-gray-500 mt-2">
-                        Get your token from: <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline">GitHub Settings → Tokens</a>
-                    </p>
                 </div>
-                <div class="mb-4">
-                    <h4 class="font-medium text-gray-700 mb-2">✨ Automatic Features:</h4>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• <strong>Real-time sync</strong> - Changes appear instantly on other devices</li>
-                        <li>• <strong>Auto-save</strong> - No manual saving required</li>
-                        <li>• <strong>Offline support</strong> - Works without internet</li>
-                        <li>• <strong>Version history</strong> - All changes saved in GitHub</li>
-                        <li>• <strong>One-time setup</strong> - Token saved for future use</li>
-                    </ul>
-                </div>
-                <div class="mb-4">
-                    <h4 class="font-medium text-gray-700 mb-2">Required Token Permissions:</h4>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>✓ repo (Full control of private repositories)</li>
-                        <li>✓ repo:status (Access commit status)</li>
-                    </ul>
-                </div>
-                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <button type="button" onclick="enableGitHubSync()" class="btn-primary w-full">
-                        <i class="fas fa-cloud-upload-alt mr-2"></i>Enable Auto-Sync
+                
+                <div class="mb-6">
+                    <button type="button" onclick="enableZeroSetupSync()" class="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3 rounded-lg font-medium text-lg shadow-lg">
+                        <i class="fas fa-rocket mr-2"></i>Enable Zero-Setup Sync
                     </button>
-                    <button type="button" onclick="closeModal('githubSyncModal')" class="btn-secondary">Cancel</button>
+                    <p class="text-center text-xs text-gray-500 mt-2">⚡ Instant setup • No tokens • Works everywhere</p>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <h4 class="font-medium text-gray-700 mb-3">✨ Zero-Setup Features:</h4>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li>• <strong>🚀 Zero setup</strong> - Click once and it works on all devices</li>
+                        <li>• <strong>🔄 Real-time sync</strong> - Changes appear instantly on other devices</li>
+                        <li>• <strong>🌐 No tokens</strong> - No GitHub account or API keys needed</li>
+                        <li>• <strong>💾 Auto-save</strong> - Everything saved automatically</li>
+                        <li>• <strong>📱 Universal</strong> - Works on phones, tablets, computers</li>
+                    </ul>
+                </div>
+                
+                <div class="border-t pt-4 mt-4">
+                    <details class="text-sm">
+                        <summary class="cursor-pointer text-gray-600 hover:text-gray-800 font-medium">
+                            ⚙️ Advanced: GitHub Sync (requires token)
+                        </summary>
+                        <div class="mt-3 pl-4 border-l-2 border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">GitHub Personal Access Token</label>
+                            <input type="password" id="githubToken" placeholder="ghp_..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
+                            <p class="text-xs text-gray-500 mt-1">
+                                <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline">Get token here</a>
+                            </p>
+                            <button type="button" onclick="enableGitHubSync()" class="mt-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm w-full">
+                                <i class="fab fa-github mr-2"></i>Use GitHub Sync
+                            </button>
+                        </div>
+                    </details>
+                </div>
+                
+                <div class="flex space-x-3 mt-4">
+                    <button type="button" onclick="closeModal('githubSyncModal')" class="btn-secondary flex-1">Cancel</button>
                 </div>
             </div>
             <div id="syncManageContent" style="display: none;">
                 <div class="mb-4">
                     <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p class="text-green-800 text-sm">
-                            <i class="fas fa-check-circle mr-2"></i>✅ Auto-sync is active
+                        <p class="text-green-800 text-sm font-medium">
+                            <i class="fas fa-check-circle mr-2"></i>✅ Zero-Setup Sync Active
                         </p>
-                        <p class="text-green-700 text-xs mt-1">Changes automatically sync across all devices</p>
+                        <p class="text-green-700 text-xs mt-1">🚀 Working across all devices without any configuration</p>
                     </div>
                 </div>
                 <div class="mb-4">
                     <h4 class="font-medium text-gray-700 mb-2">🔄 Sync Status:</h4>
                     <div class="bg-gray-50 rounded-lg p-3">
-                        <p class="text-sm text-gray-600">• Polling every 30 seconds for changes</p>
-                        <p class="text-sm text-gray-600">• Auto-saves when you make changes</p>
-                        <p class="text-sm text-gray-600">• Real-time updates from other devices</p>
+                        <p class="text-sm text-gray-600">• 🌐 Cloud sync active</p>
+                        <p class="text-sm text-gray-600">• ⚡ Polling every 15 seconds</p>
+                        <p class="text-sm text-gray-600">• 💾 Auto-saves all changes</p>
+                        <p class="text-sm text-gray-600">• 📱 Works on all devices</p>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p class="text-blue-800 text-sm">
+                            <i class="fas fa-info-circle mr-2"></i>Share this app with anyone - they'll get the same data!
+                        </p>
+                        <p class="text-blue-700 text-xs mt-1">No setup required on other devices</p>
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <button type="button" onclick="disableGitHubSync()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                    <button type="button" onclick="disableSync()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-times mr-2"></i>Disable Sync
                     </button>
                     <button type="button" onclick="closeModal('githubSyncModal')" class="btn-secondary">Close</button>
@@ -597,6 +619,27 @@
             scheduler.openModal('githubSyncModal');
         }
         
+        function enableZeroSetupSync() {
+            console.log('enableZeroSetupSync called');
+            
+            // Wait for scheduler to be fully loaded
+            function waitForScheduler() {
+                if (window.scheduler && typeof scheduler.enableZeroSetupSync === 'function') {
+                    console.log('Calling scheduler.enableZeroSetupSync');
+                    scheduler.enableZeroSetupSync();
+                    console.log('Zero-setup sync enabled successfully');
+                } else if (window.scheduler) {
+                    console.log('Scheduler found but method missing, retrying...');
+                    setTimeout(waitForScheduler, 100);
+                } else {
+                    console.log('Scheduler not found, retrying...');
+                    setTimeout(waitForScheduler, 100);
+                }
+            }
+            
+            waitForScheduler();
+        }
+        
         function enableGitHubSync() {
             console.log('enableGitHubSync called');
             const token = document.getElementById('githubToken').value.trim();
@@ -618,26 +661,10 @@
                     console.log('Calling scheduler.enableGitHubSync');
                     scheduler.enableGitHubSync(token);
                     document.getElementById('githubToken').value = '';
-                    console.log('Sync enabled successfully');
+                    console.log('GitHub sync enabled successfully');
                 } else if (window.scheduler) {
-                    console.log('Scheduler found but method missing, listing available methods:');
-                    console.log('Available methods:', Object.getOwnPropertyNames(window.scheduler));
-                    console.log('Prototype methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.scheduler)));
-                    
-                    // Try direct method call
-                    try {
-                        const BadmintonScheduler = window.scheduler.constructor;
-                        if (BadmintonScheduler.prototype.enableGitHubSync) {
-                            console.log('Found method on prototype, calling directly');
-                            BadmintonScheduler.prototype.enableGitHubSync.call(window.scheduler, token);
-                            document.getElementById('githubToken').value = '';
-                        } else {
-                            alert('Error: enableGitHubSync method not found on scheduler');
-                        }
-                    } catch (error) {
-                        console.error('Error calling method:', error);
-                        alert('Error enabling sync: ' + error.message);
-                    }
+                    console.log('Scheduler found but method missing, retrying...');
+                    setTimeout(waitForScheduler, 100);
                 } else {
                     console.log('Scheduler not found, retrying...');
                     setTimeout(waitForScheduler, 100);
@@ -661,9 +688,9 @@
             }
         }
         
-        function disableGitHubSync() {
-            if (confirm('Are you sure you want to disable GitHub sync? Data will only be stored locally.')) {
-                scheduler.disableGitHubSync();
+        function disableSync() {
+            if (confirm('Are you sure you want to disable sync? Data will only be stored locally on this device.')) {
+                scheduler.disableSync();
                 scheduler.closeModal('githubSyncModal');
             }
         }

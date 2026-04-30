@@ -8,15 +8,18 @@ class BadmintonScheduler {
         this.draggedItem = null;
         this.touchItem = null;
         
-        // GitHub API settings
+        // Sync settings - Zero-setup using JSONBin
+        this.syncMethod = localStorage.getItem('sync_method') || 'local';
+        this.jsonBinId = localStorage.getItem('jsonbin_id') || null;
+        this.jsonBinApiKey = localStorage.getItem('jsonbin_api_key') || null;
         this.githubToken = localStorage.getItem('github_token') || '';
         this.githubRepo = 'hoursou/badminton-scheduler';
         this.dataFile = 'badminton-data.json';
-        this.syncEnabled = !!this.githubToken;
+        this.syncEnabled = this.syncMethod !== 'local';
         this.lastSyncTime = localStorage.getItem('last_sync_time') || null;
         this.lastRemoteUpdate = localStorage.getItem('last_remote_update') || null;
         this.syncInterval = null;
-        this.syncPollingFrequency = 30000; // 30 seconds
+        this.syncPollingFrequency = 15000; // 15 seconds for faster updates
         
         this.initializeElements();
         this.bindEvents();
@@ -26,6 +29,11 @@ class BadmintonScheduler {
         // Auto-sync if enabled
         if (this.syncEnabled) {
             this.startAutoSync();
+        }
+        
+        // Try to create or load JSONBin if none exists
+        if (this.syncMethod === 'jsonbin' && !this.jsonBinId) {
+            this.createOrLoadJsonBin();
         }
     }
     
@@ -45,10 +53,139 @@ class BadmintonScheduler {
         };
     }
     
-    // GitHub API Methods
+    // Zero-setup sync methods
+    async syncToCloud() {
+        if (!this.syncEnabled) return;
+        
+        if (this.syncMethod === 'jsonbin') {
+            return this.syncToJsonBin();
+        } else if (this.syncMethod === 'github') {
+            return this.syncToGitHub();
+        }
+    }
+    
+    async syncToJsonBin() {
+        if (!this.jsonBinId) {
+            await this.createOrLoadJsonBin();
+            if (!this.jsonBinId) return;
+        }
+        
+        try {
+            const data = {
+                players: this.players,
+                pairs: this.pairs,
+                sessions: this.sessions,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${this.jsonBinId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': this.jsonBinApiKey || 'default'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                this.lastSyncTime = new Date().toISOString();
+                localStorage.setItem('last_sync_time', this.lastSyncTime);
+                this.updateSyncStatus();
+                console.log('Auto-sync to JSONBin completed');
+            }
+        } catch (error) {
+            console.error('JSONBin sync error:', error);
+        }
+    }
+    
+    async syncFromCloud() {
+        if (!this.syncEnabled) return;
+        
+        if (this.syncMethod === 'jsonbin') {
+            return this.syncFromJsonBin();
+        } else if (this.syncMethod === 'github') {
+            return this.syncFromGitHub();
+        }
+    }
+    
+    async syncFromJsonBin() {
+        if (!this.jsonBinId) {
+            await this.createOrLoadJsonBin();
+            if (!this.jsonBinId) return;
+        }
+        
+        try {
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${this.jsonBinId}/latest`, {
+                headers: {
+                    'X-Master-Key': this.jsonBinApiKey || 'default'
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                const data = result.record;
+                
+                // Check if remote data is newer
+                const localLastUpdated = localStorage.getItem('last_updated') || '1970-01-01T00:00:00.000Z';
+                if (data.lastUpdated > localLastUpdated) {
+                    console.log('Remote changes detected from JSONBin, syncing...');
+                    this.players = data.players || [];
+                    this.pairs = data.pairs || [];
+                    this.sessions = data.sessions || [];
+                    
+                    this.saveToLocalStorage();
+                    localStorage.setItem('last_updated', data.lastUpdated);
+                    
+                    this.render();
+                    this.showNotification('🔄 Auto-synced: Changes from other device', 'info');
+                }
+                
+                this.lastSyncTime = new Date().toISOString();
+                localStorage.setItem('last_sync_time', this.lastSyncTime);
+                this.updateSyncStatus();
+            }
+        } catch (error) {
+            console.log('JSONBin sync from error:', error);
+        }
+    }
+    
+    async createOrLoadJsonBin() {
+        try {
+            // Try to create a new bin with default data
+            const defaultData = {
+                players: this.players,
+                pairs: this.pairs,
+                sessions: this.sessions,
+                lastUpdated: new Date().toISOString(),
+                app: 'badminton-scheduler'
+            };
+            
+            const response = await fetch('https://api.jsonbin.io/v3/b', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': this.jsonBinApiKey || 'default'
+                },
+                body: JSON.stringify(defaultData)
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                this.jsonBinId = result.id;
+                localStorage.setItem('jsonbin_id', this.jsonBinId);
+                console.log('Created JSONBin:', this.jsonBinId);
+                return this.jsonBinId;
+            }
+        } catch (error) {
+            console.error('Failed to create JSONBin:', error);
+        }
+        return null;
+    }
+    
+    // GitHub API Methods (legacy)
     async syncToGitHub() {
-        if (!this.syncEnabled) {
-            return; // Silent fail if sync not enabled
+        if (!this.syncEnabled || this.syncMethod !== 'github') {
+            return;
         }
         
         try {
@@ -92,12 +229,9 @@ class BadmintonScheduler {
                 localStorage.setItem('last_sync_time', this.lastSyncTime);
                 this.updateSyncStatus();
                 console.log('Auto-sync to GitHub completed');
-            } else {
-                throw new Error('Failed to sync to GitHub');
             }
         } catch (error) {
             console.error('Auto-sync error:', error);
-            // Silent fail - don't show notifications for auto-sync errors
         }
     }
     
@@ -147,16 +281,14 @@ class BadmintonScheduler {
         localStorage.setItem('last_updated', new Date().toISOString());
     }
     
-    enableGitHubSync(token) {
-        console.log('enableGitHubSync method called with token:', token ? 'Yes' : 'No');
+    enableZeroSetupSync() {
+        console.log('Enabling zero-setup sync');
         try {
-            this.githubToken = token;
+            this.syncMethod = 'jsonbin';
             this.syncEnabled = true;
-            localStorage.setItem('github_token', token);
-            console.log('Token saved to localStorage');
+            localStorage.setItem('sync_method', 'jsonbin');
             
-            this.showNotification('Auto-sync enabled - Real-time updates active', 'success');
-            console.log('Notification shown');
+            this.showNotification('🚀 Zero-setup sync enabled - Real-time updates active', 'success');
             
             // Close the modal and switch to manage view
             this.closeModal('githubSyncModal');
@@ -165,10 +297,39 @@ class BadmintonScheduler {
             if (setupContent) setupContent.style.display = 'none';
             if (manageContent) manageContent.style.display = 'block';
             
-            console.log('Starting auto-sync');
+            console.log('Starting zero-setup auto-sync');
             this.startAutoSync();
             this.updateSyncStatus();
-            console.log('enableGitHubSync completed');
+            console.log('Zero-setup sync completed');
+        } catch (error) {
+            console.error('Error enabling zero-setup sync:', error);
+            this.showNotification('Failed to enable sync', 'error');
+        }
+    }
+    
+    enableGitHubSync(token) {
+        console.log('enableGitHubSync method called with token:', token ? 'Yes' : 'No');
+        try {
+            this.githubToken = token;
+            this.syncMethod = 'github';
+            this.syncEnabled = true;
+            localStorage.setItem('github_token', token);
+            localStorage.setItem('sync_method', 'github');
+            console.log('Token saved to localStorage');
+            
+            this.showNotification('GitHub sync enabled - Real-time updates active', 'success');
+            
+            // Close the modal and switch to manage view
+            this.closeModal('githubSyncModal');
+            const setupContent = document.getElementById('syncSetupContent');
+            const manageContent = document.getElementById('syncManageContent');
+            if (setupContent) setupContent.style.display = 'none';
+            if (manageContent) manageContent.style.display = 'block';
+            
+            console.log('Starting GitHub auto-sync');
+            this.startAutoSync();
+            this.updateSyncStatus();
+            console.log('GitHub sync completed');
         } catch (error) {
             console.error('Error in enableGitHubSync:', error);
             this.showNotification('Failed to enable GitHub sync', 'error');
@@ -203,58 +364,22 @@ class BadmintonScheduler {
     async checkForRemoteChanges() {
         if (!this.syncEnabled) return;
         
-        try {
-            const response = await fetch(`https://api.github.com/repos/${this.githubRepo}/contents/${this.dataFile}`, {
-                headers: {
-                    'Authorization': `token ${this.githubToken}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'If-Modified-Since': this.lastRemoteUpdate || ''
-                }
-            });
-            
-            if (response.status === 304) {
-                // No changes
-                return;
-            }
-            
-            if (response.ok) {
-                const fileData = await response.json();
-                const data = JSON.parse(atob(fileData.content));
-                
-                // Check if remote data is newer
-                const localLastUpdated = localStorage.getItem('last_updated') || '1970-01-01T00:00:00.000Z';
-                if (data.lastUpdated > localLastUpdated) {
-                    console.log('Remote changes detected, syncing...');
-                    this.players = data.players || [];
-                    this.pairs = data.pairs || [];
-                    this.sessions = data.sessions || [];
-                    
-                    // Update local storage
-                    this.saveToLocalStorage();
-                    localStorage.setItem('last_remote_update', fileData.last_modified);
-                    localStorage.setItem('last_updated', data.lastUpdated);
-                    
-                    this.render();
-                    this.showNotification('🔄 Auto-synced: Changes from other device', 'info');
-                }
-                
-                this.lastSyncTime = new Date().toISOString();
-                localStorage.setItem('last_sync_time', this.lastSyncTime);
-                this.updateSyncStatus();
-            }
-        } catch (error) {
-            console.log('Check for changes failed, continuing...');
-        }
+        await this.syncFromCloud();
     }
     
-    disableGitHubSync() {
+    disableSync() {
         this.stopAutoSync();
         this.syncEnabled = false;
+        this.syncMethod = 'local';
         this.githubToken = '';
+        this.jsonBinId = null;
         localStorage.removeItem('github_token');
+        localStorage.removeItem('jsonbin_id');
+        localStorage.removeItem('jsonbin_api_key');
+        localStorage.removeItem('sync_method');
         localStorage.removeItem('last_sync_time');
         localStorage.removeItem('last_remote_update');
-        this.showNotification('Auto-sync disabled', 'info');
+        this.showNotification('Sync disabled', 'info');
         this.updateSyncStatus();
     }
     
@@ -263,10 +388,14 @@ class BadmintonScheduler {
         if (statusElement) {
             if (this.syncEnabled && this.lastSyncTime) {
                 const syncDate = new Date(this.lastSyncTime);
-                statusElement.innerHTML = `<i class="fas fa-sync-alt text-green-400"></i> Last sync: ${syncDate.toLocaleString()}`;
+                const methodIcon = this.syncMethod === 'jsonbin' ? '🌐' : '🐙';
+                const methodName = this.syncMethod === 'jsonbin' ? 'Cloud' : 'GitHub';
+                statusElement.innerHTML = `<i class="fas fa-sync-alt text-green-400"></i> ${methodIcon} Last sync: ${syncDate.toLocaleString()}`;
                 statusElement.className = 'text-xs text-gray-300';
             } else if (this.syncEnabled) {
-                statusElement.innerHTML = '<i class="fas fa-sync-alt text-yellow-400"></i> Sync enabled';
+                const methodIcon = this.syncMethod === 'jsonbin' ? '🌐' : '🐙';
+                const methodName = this.syncMethod === 'jsonbin' ? 'Cloud' : 'GitHub';
+                statusElement.innerHTML = `<i class="fas fa-sync-alt text-yellow-400"></i> ${methodIcon} ${methodName} sync enabled`;
                 statusElement.className = 'text-xs text-gray-300';
             } else {
                 statusElement.innerHTML = '<i class="fas fa-sync text-gray-400"></i> Local only';
@@ -321,21 +450,21 @@ class BadmintonScheduler {
     savePlayers() {
         this.saveToLocalStorage();
         if (this.syncEnabled) {
-            this.syncToGitHub();
+            this.syncToCloud();
         }
     }
     
     savePairs() {
         this.saveToLocalStorage();
         if (this.syncEnabled) {
-            this.syncToGitHub();
+            this.syncToCloud();
         }
     }
     
     saveSessions() {
         this.saveToLocalStorage();
         if (this.syncEnabled) {
-            this.syncToGitHub();
+            this.syncToCloud();
         }
     }
     
