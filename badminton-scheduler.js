@@ -8,33 +8,16 @@ class BadmintonScheduler {
         this.draggedItem = null;
         this.touchItem = null;
         
-        // Sync settings - Zero-setup using JSONBin
+        // Simple sync settings
         this.syncMethod = localStorage.getItem('sync_method') || 'local';
-        this.jsonBinId = localStorage.getItem('jsonbin_id') || null;
-        this.jsonBinApiKey = localStorage.getItem('jsonbin_api_key') || null;
-        this.githubToken = localStorage.getItem('github_token') || '';
-        this.githubRepo = 'hoursou/badminton-scheduler';
-        this.dataFile = 'badminton-data.json';
-        this.syncEnabled = this.syncMethod !== 'local';
         this.lastSyncTime = localStorage.getItem('last_sync_time') || null;
-        this.lastRemoteUpdate = localStorage.getItem('last_remote_update') || null;
-        this.syncInterval = null;
-        this.syncPollingFrequency = 15000; // 15 seconds for faster updates
         
         this.initializeElements();
         this.bindEvents();
         this.render();
         this.initializeMobileView();
         
-        // Auto-sync if enabled
-        if (this.syncEnabled) {
-            this.startAutoSync();
-        }
-        
-        // Try to create or load JSONBin if none exists
-        if (this.syncMethod === 'jsonbin' && !this.jsonBinId) {
-            this.createOrLoadJsonBin();
-        }
+        // No auto-sync - use manual sync options
     }
     
     initializeElements() {
@@ -53,133 +36,107 @@ class BadmintonScheduler {
         };
     }
     
-    // Zero-setup sync methods
-    async syncToCloud() {
-        if (!this.syncEnabled) return;
+    // Simple sync methods
+    exportData() {
+        const data = {
+            players: this.players,
+            pairs: this.pairs,
+            sessions: this.sessions,
+            exportedAt: new Date().toISOString(),
+            version: '1.0'
+        };
         
-        if (this.syncMethod === 'jsonbin') {
-            return this.syncToJsonBin();
-        } else if (this.syncMethod === 'github') {
-            return this.syncToGitHub();
-        }
+        const jsonString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `badminton-scheduler-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.showNotification('Data exported successfully', 'success');
     }
     
-    async syncToJsonBin() {
-        if (!this.jsonBinId) {
-            await this.createOrLoadJsonBin();
-            if (!this.jsonBinId) return;
-        }
-        
-        try {
-            const data = {
-                players: this.players,
-                pairs: this.pairs,
-                sessions: this.sessions,
-                lastUpdated: new Date().toISOString()
-            };
-            
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${this.jsonBinId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': this.jsonBinApiKey || 'default'
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (response.ok) {
-                this.lastSyncTime = new Date().toISOString();
-                localStorage.setItem('last_sync_time', this.lastSyncTime);
-                this.updateSyncStatus();
-                console.log('Auto-sync to JSONBin completed');
-            }
-        } catch (error) {
-            console.error('JSONBin sync error:', error);
-        }
-    }
-    
-    async syncFromCloud() {
-        if (!this.syncEnabled) return;
-        
-        if (this.syncMethod === 'jsonbin') {
-            return this.syncFromJsonBin();
-        } else if (this.syncMethod === 'github') {
-            return this.syncFromGitHub();
-        }
-    }
-    
-    async syncFromJsonBin() {
-        if (!this.jsonBinId) {
-            await this.createOrLoadJsonBin();
-            if (!this.jsonBinId) return;
-        }
-        
-        try {
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${this.jsonBinId}/latest`, {
-                headers: {
-                    'X-Master-Key': this.jsonBinApiKey || 'default'
-                }
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                const data = result.record;
+    importData(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
                 
-                // Check if remote data is newer
-                const localLastUpdated = localStorage.getItem('last_updated') || '1970-01-01T00:00:00.000Z';
-                if (data.lastUpdated > localLastUpdated) {
-                    console.log('Remote changes detected from JSONBin, syncing...');
-                    this.players = data.players || [];
-                    this.pairs = data.pairs || [];
-                    this.sessions = data.sessions || [];
+                if (data.version && data.players && data.pairs && data.sessions) {
+                    this.players = data.players;
+                    this.pairs = data.pairs;
+                    this.sessions = data.sessions;
                     
                     this.saveToLocalStorage();
-                    localStorage.setItem('last_updated', data.lastUpdated);
-                    
                     this.render();
-                    this.showNotification('🔄 Auto-synced: Changes from other device', 'info');
+                    
+                    this.showNotification('Data imported successfully', 'success');
+                } else {
+                    this.showNotification('Invalid data format', 'error');
                 }
-                
-                this.lastSyncTime = new Date().toISOString();
-                localStorage.setItem('last_sync_time', this.lastSyncTime);
-                this.updateSyncStatus();
+            } catch (error) {
+                this.showNotification('Failed to import data', 'error');
             }
-        } catch (error) {
-            console.log('JSONBin sync from error:', error);
-        }
+        };
+        reader.readAsText(file);
     }
     
-    async createOrLoadJsonBin() {
-        try {
-            // Try to create a new bin with default data
-            const defaultData = {
-                players: this.players,
-                pairs: this.pairs,
-                sessions: this.sessions,
-                lastUpdated: new Date().toISOString(),
-                app: 'badminton-scheduler'
-            };
-            
-            const response = await fetch('https://api.jsonbin.io/v3/b', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': this.jsonBinApiKey || 'default'
-                },
-                body: JSON.stringify(defaultData)
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                this.jsonBinId = result.id;
-                localStorage.setItem('jsonbin_id', this.jsonBinId);
-                console.log('Created JSONBin:', this.jsonBinId);
-                return this.jsonBinId;
+    shareViaURL() {
+        const data = {
+            players: this.players,
+            pairs: this.pairs,
+            sessions: this.sessions,
+            sharedAt: new Date().toISOString()
+        };
+        
+        const compressed = btoa(JSON.stringify(data));
+        const url = `${window.location.origin}${window.location.pathname}?data=${compressed}`;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+            this.showNotification('Share link copied to clipboard', 'success');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            this.showNotification('Share link copied to clipboard', 'success');
+        });
+    }
+    
+    loadFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const data = params.get('data');
+        
+        if (data) {
+            try {
+                const decompressed = JSON.parse(atob(data));
+                
+                if (decompressed.players && decompressed.pairs && decompressed.sessions) {
+                    this.players = decompressed.players;
+                    this.pairs = decompressed.pairs;
+                    this.sessions = decompressed.sessions;
+                    
+                    this.saveToLocalStorage();
+                    this.render();
+                    
+                    this.showNotification('Data loaded from shared link', 'success');
+                    
+                    // Clean URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } catch (error) {
+                console.error('Failed to load data from URL:', error);
             }
-        } catch (error) {
-            console.error('Failed to create JSONBin:', error);
         }
-        return null;
     }
     
     // GitHub API Methods (legacy)
@@ -276,41 +233,6 @@ class BadmintonScheduler {
     
     saveToLocalStorage() {
         localStorage.setItem('badminton_players', JSON.stringify(this.players));
-        localStorage.setItem('badminton_pairs', JSON.stringify(this.pairs));
-        localStorage.setItem('badminton_sessions', JSON.stringify(this.sessions));
-        localStorage.setItem('last_updated', new Date().toISOString());
-    }
-    
-    enableZeroSetupSync() {
-        console.log('Enabling zero-setup sync');
-        try {
-            this.syncMethod = 'jsonbin';
-            this.syncEnabled = true;
-            localStorage.setItem('sync_method', 'jsonbin');
-            
-            this.showNotification('🚀 Zero-setup sync enabled - Real-time updates active', 'success');
-            
-            // Close the modal and switch to manage view
-            this.closeModal('githubSyncModal');
-            const setupContent = document.getElementById('syncSetupContent');
-            const manageContent = document.getElementById('syncManageContent');
-            if (setupContent) setupContent.style.display = 'none';
-            if (manageContent) manageContent.style.display = 'block';
-            
-            console.log('Starting zero-setup auto-sync');
-            this.startAutoSync();
-            this.updateSyncStatus();
-            console.log('Zero-setup sync completed');
-        } catch (error) {
-            console.error('Error enabling zero-setup sync:', error);
-            this.showNotification('Failed to enable sync', 'error');
-        }
-    }
-    
-    enableGitHubSync(token) {
-        console.log('enableGitHubSync method called with token:', token ? 'Yes' : 'No');
-        try {
-            this.githubToken = token;
             this.syncMethod = 'github';
             this.syncEnabled = true;
             localStorage.setItem('github_token', token);
@@ -336,36 +258,7 @@ class BadmintonScheduler {
         }
     }
     
-    startAutoSync() {
-        // Clear any existing interval
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-        }
-        
-        // Initial sync
-        this.syncFromGitHub();
-        
-        // Start polling for changes
-        this.syncInterval = setInterval(() => {
-            this.checkForRemoteChanges();
-        }, this.syncPollingFrequency);
-        
-        console.log('Auto-sync started, polling every', this.syncPollingFrequency / 1000, 'seconds');
-    }
-    
-    stopAutoSync() {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-            this.syncInterval = null;
-            console.log('Auto-sync stopped');
-        }
-    }
-    
-    async checkForRemoteChanges() {
-        if (!this.syncEnabled) return;
-        
-        await this.syncFromCloud();
-    }
+    // No auto-sync - use manual methods
     
     disableSync() {
         this.stopAutoSync();
@@ -386,21 +279,8 @@ class BadmintonScheduler {
     updateSyncStatus() {
         const statusElement = document.getElementById('syncStatus');
         if (statusElement) {
-            if (this.syncEnabled && this.lastSyncTime) {
-                const syncDate = new Date(this.lastSyncTime);
-                const methodIcon = this.syncMethod === 'jsonbin' ? '🌐' : '🐙';
-                const methodName = this.syncMethod === 'jsonbin' ? 'Cloud' : 'GitHub';
-                statusElement.innerHTML = `<i class="fas fa-sync-alt text-green-400"></i> ${methodIcon} Last sync: ${syncDate.toLocaleString()}`;
-                statusElement.className = 'text-xs text-gray-300';
-            } else if (this.syncEnabled) {
-                const methodIcon = this.syncMethod === 'jsonbin' ? '🌐' : '🐙';
-                const methodName = this.syncMethod === 'jsonbin' ? 'Cloud' : 'GitHub';
-                statusElement.innerHTML = `<i class="fas fa-sync-alt text-yellow-400"></i> ${methodIcon} ${methodName} sync enabled`;
-                statusElement.className = 'text-xs text-gray-300';
-            } else {
-                statusElement.innerHTML = '<i class="fas fa-sync text-gray-400"></i> Local only';
-                statusElement.className = 'text-xs text-gray-400';
-            }
+            statusElement.innerHTML = '<i class="fas fa-save text-gray-400"></i> Local storage';
+            statusElement.className = 'text-xs text-gray-400';
         }
     }
     
@@ -449,23 +329,14 @@ class BadmintonScheduler {
     
     savePlayers() {
         this.saveToLocalStorage();
-        if (this.syncEnabled) {
-            this.syncToCloud();
-        }
     }
     
     savePairs() {
         this.saveToLocalStorage();
-        if (this.syncEnabled) {
-            this.syncToCloud();
-        }
     }
     
     saveSessions() {
         this.saveToLocalStorage();
-        if (this.syncEnabled) {
-            this.syncToCloud();
-        }
     }
     
     // Player management
