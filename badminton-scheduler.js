@@ -519,6 +519,9 @@ class BadmintonScheduler {
             card.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
         });
         
+        // Setup delete button touch events for mobile
+        this.setupDeleteButtonTouchEvents();
+        
         // Setup drop zones for session slots
         document.querySelectorAll('.session-slot').forEach(slot => {
             slot.addEventListener('dragover', (e) => this.handleDragOver(e));
@@ -820,6 +823,24 @@ class BadmintonScheduler {
         this.showNotification(`Added ${selectedPair.name} to ${court.name}`, 'success');
     }
     
+    setupDeleteButtonTouchEvents() {
+        // Add touch event listeners to delete buttons
+        document.querySelectorAll('button[onclick*="removePlayer"], button[onclick*="removePair"]').forEach(button => {
+            // Prevent drag events on delete buttons
+            button.addEventListener('dragstart', (e) => e.stopPropagation());
+            button.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                // Add visual feedback
+                button.style.transform = 'scale(0.95)';
+                if (navigator.vibrate) navigator.vibrate(30);
+            }, { passive: true });
+            button.addEventListener('touchend', (e) => {
+                e.stopPropagation();
+                button.style.transform = 'scale(1)';
+            }, { passive: true });
+        });
+    }
+    
     // Enhanced touch event handlers for mobile drag and drop
     handleTouchStart(e, type) {
         const touch = e.touches[0];
@@ -1012,7 +1033,7 @@ class BadmintonScheduler {
                             </span>
                         </div>
                     </div>
-                    <button onclick="scheduler.removePlayer('${player.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center touch-manipulation">
+                    <button onclick="scheduler.removePlayer('${player.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center touch-manipulation" style="touch-action: manipulation; pointer-events: auto;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -1033,7 +1054,7 @@ class BadmintonScheduler {
                         <div class="font-semibold">${pair.name}</div>
                         <div class="text-sm opacity-90">${pair.player1Name} & ${pair.player2Name}</div>
                     </div>
-                    <button onclick="scheduler.removePair('${pair.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center touch-manipulation">
+                    <button onclick="scheduler.removePair('${pair.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center touch-manipulation" style="touch-action: manipulation; pointer-events: auto;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -1084,12 +1105,8 @@ class BadmintonScheduler {
     }
     
     renderCourt(session, court) {
-        const availablePairs = this.pairs.filter(pair => {
-            // Check if pair is already in any match in this court
-            return !court.matches.some(match => 
-                match.pairs && match.pairs.some(p => p.id === pair.id)
-            );
-        });
+        // Show all pairs, let the user decide - they can add pairs to different matches
+        const availablePairs = this.pairs;
         
         return `
             <div class="border border-gray-200 rounded-lg p-4">
