@@ -17,6 +17,9 @@ class BadmintonScheduler {
         this.render();
         this.initializeMobileView();
         
+        // Check for shared view on load
+        this.loadSharedView();
+        
         // No auto-sync - use manual sync options
     }
     
@@ -781,6 +784,191 @@ class BadmintonScheduler {
     getPlayerName(playerId) {
         const player = this.players.find(p => p.id === playerId);
         return player ? player.name : 'Unknown';
+    }
+    
+    // Session sharing functionality
+    shareSessionWithPlayers() {
+        if (this.sessions.length === 0) {
+            this.showNotification('No sessions to share', 'error');
+            return;
+        }
+        
+        // Create shareable data with session info
+        const shareData = {
+            type: 'session_view',
+            sessions: this.sessions,
+            players: this.players,
+            pairs: this.pairs,
+            sharedAt: new Date().toISOString(),
+            version: '2.4'
+        };
+        
+        // Compress the data for URL
+        const jsonString = JSON.stringify(shareData);
+        const compressed = this.compressData(jsonString);
+        const encoded = btoa(compressed);
+        
+        // Create shareable URL
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = `${baseUrl}?view=shared&data=${encoded}`;
+        
+        // Copy to clipboard
+        this.copyToClipboard(shareUrl);
+        
+        this.showNotification('Session link copied to clipboard! Share with players.', 'success');
+    }
+    
+    compressData(data) {
+        // Simple compression - replace common patterns
+        return data
+            .replace(/"players":/g, '"p":')
+            .replace(/"pairs":/g, '"pr":')
+            .replace(/"sessions":/g, '"s":')
+            .replace(/"player1Id":/g, '"p1":')
+            .replace(/"player2Id":/g, '"p2":')
+            .replace(/"player1Name":/g, '"pn1":')
+            .replace(/"player2Name":/g, '"pn2":')
+            .replace(/"courtsData":/g, '"c":');
+    }
+    
+    copyToClipboard(text) {
+        // Create temporary textarea element
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+        }
+        
+        document.body.removeChild(textarea);
+    }
+    
+    loadSharedView() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const view = urlParams.get('view');
+        const data = urlParams.get('data');
+        
+        if (view === 'shared' && data) {
+            try {
+                const decoded = atob(data);
+                const decompressed = this.decompressData(decoded);
+                const shareData = JSON.parse(decompressed);
+                
+                if (shareData.type === 'session_view') {
+                    this.renderSharedView(shareData);
+                }
+            } catch (error) {
+                console.error('Error loading shared view:', error);
+                this.showNotification('Invalid share link', 'error');
+            }
+        }
+    }
+    
+    decompressData(data) {
+        // Reverse compression
+        return data
+            .replace(/"p":/g, '"players":')
+            .replace(/"pr":/g, '"pairs":')
+            .replace(/"s":/g, '"sessions":')
+            .replace(/"p1":/g, '"player1Id":')
+            .replace(/"p2":/g, '"player2Id":')
+            .replace(/"pn1":/g, '"player1Name":')
+            .replace(/"pn2":/g, '"player2Name":')
+            .replace(/"c":/g, '"courtsData":');
+    }
+    
+    renderSharedView(shareData) {
+        // Hide all admin controls
+        document.querySelector('.glass-morphism.p-4').style.display = 'none';
+        document.getElementById('playersPanel').style.display = 'none';
+        document.getElementById('sessionsPanel').style.display = 'none';
+        
+        // Create shared view container
+        const sharedContainer = document.createElement('div');
+        sharedContainer.className = 'glass-morphism p-6';
+        sharedContainer.innerHTML = `
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-white mb-2">Badminton Schedule</h1>
+                <p class="text-white/70 text-sm">Read-only view for players</p>
+                <p class="text-white/50 text-xs mt-1">Shared on ${new Date(shareData.sharedAt).toLocaleDateString()}</p>
+            </div>
+            
+            <div class="space-y-6">
+                ${shareData.sessions.map(session => this.renderSharedSession(session, shareData.players, shareData.pairs)).join('')}
+            </div>
+            
+            <div class="text-center mt-8">
+                <p class="text-white/50 text-xs">Created with Badminton Scheduler v2.4</p>
+            </div>
+        `;
+        
+        // Replace main content
+        const mainContainer = document.querySelector('.container.mx-auto');
+        mainContainer.innerHTML = '';
+        mainContainer.appendChild(sharedContainer);
+    }
+    
+    renderSharedSession(session, players, pairs) {
+        const sessionDate = new Date(session.date + ' ' + session.time);
+        
+        return `
+            <div class="border border-white/20 rounded-lg p-4">
+                <div class="mb-4">
+                    <h3 class="text-xl font-bold text-white mb-2">${session.name}</h3>
+                    <p class="text-white/70 text-sm">
+                        <i class="fas fa-calendar mr-2"></i>${sessionDate.toLocaleDateString()}
+                        <i class="fas fa-clock ml-3 mr-2"></i>${session.time}
+                        <i class="fas fa-hourglass-half ml-3 mr-2"></i>${session.duration} min
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${session.courtsData.map(court => this.renderSharedCourt(court, pairs)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    renderSharedCourt(court, pairs) {
+        return `
+            <div class="border border-white/10 rounded-lg p-3">
+                <h4 class="font-semibold text-white mb-3">${court.name}</h4>
+                
+                ${court.matches.length === 0 ? 
+                    '<p class="text-white/50 text-center py-4">No matches scheduled</p>' :
+                    court.matches.map((match, index) => this.renderSharedMatch(match, index + 1, pairs)).join('')
+                }
+            </div>
+        `;
+    }
+    
+    renderSharedMatch(match, matchNumber, pairs) {
+        if (match.pairs && match.pairs.length > 0) {
+            return `
+                <div class="bg-white/10 rounded-lg p-3 mb-2">
+                    <div class="text-sm font-medium text-white mb-2">Match ${matchNumber}</div>
+                    <div class="space-y-1">
+                        ${match.pairs.map(pair => {
+                            const pairData = pairs.find(p => p.id === pair.id);
+                            return pairData ? `
+                                <div class="bg-white/5 rounded px-2 py-1 text-sm text-white/80">
+                                    <i class="fas fa-users mr-1"></i>${pairData.name}
+                                    <span class="text-white/60 text-xs ml-2">(${pairData.player1Name} & ${pairData.player2Name})</span>
+                                </div>
+                            ` : '';
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        return '';
     }
     
     setupDeleteButtonTouchEvents() {

@@ -381,9 +381,15 @@
                             <i class="fas fa-calendar-plus"></i>
                             <span class="block text-xs mt-1">New</span>
                         </button>
-                        <button onclick="clearAllSessions()" class="bg-red-500 hover:bg-red-600 text-white px-2 py-2 rounded-lg text-xs">
+                        <button onclick="shareSessionWithPlayers()" class="bg-green-500 hover:bg-green-600 text-white px-2 py-2 rounded-lg text-xs">
+                            <i class="fas fa-share"></i>
+                            <span class="block text-xs mt-1">Share</span>
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <button onclick="clearAllSessions()" class="w-full bg-red-500 hover:bg-red-600 text-white px-2 py-2 rounded-lg text-xs">
                             <i class="fas fa-trash"></i>
-                            <span class="block text-xs mt-1">Clear</span>
+                            <span class="block text-xs mt-1">Clear All</span>
                         </button>
                     </div>
                 </div>
@@ -651,6 +657,10 @@
             } else {
                 scheduler.showNotification('Please select a file to import', 'error');
             }
+        }
+        
+        function shareSessionWithPlayers() {
+            scheduler.shareSessionWithPlayers();
         }
         
         // No disable sync needed - simple manual options only
