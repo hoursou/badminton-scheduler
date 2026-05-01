@@ -810,7 +810,14 @@ class BadmintonScheduler {
             let isSwiping = false;
             let deleteThreshold = 100; // Swipe distance to trigger delete
             
+            // Remove any existing touch event listeners first
+            card.removeEventListener('touchstart', this.handleTouchStart);
+            card.removeEventListener('touchmove', this.handleTouchMove);
+            card.removeEventListener('touchend', this.handleTouchEnd);
+            
             card.addEventListener('touchstart', (e) => {
+                // Stop propagation to prevent other touch handlers
+                e.stopPropagation();
                 startX = e.touches[0].clientX;
                 isSwiping = true;
                 card.style.transition = 'none';
@@ -836,6 +843,9 @@ class BadmintonScheduler {
             
             card.addEventListener('touchend', (e) => {
                 if (!isSwiping) return;
+                
+                // Stop propagation to prevent other touch handlers
+                e.stopPropagation();
                 
                 const deltaX = currentX - startX;
                 const cardType = card.getAttribute('data-type');
@@ -871,7 +881,9 @@ class BadmintonScheduler {
                 isSwiping = false;
             }, { passive: true });
             
-            card.addEventListener('touchcancel', () => {
+            card.addEventListener('touchcancel', (e) => {
+                // Stop propagation to prevent other touch handlers
+                e.stopPropagation();
                 // Reset on touch cancel
                 card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
                 card.style.transform = 'translateX(0)';
@@ -880,121 +892,30 @@ class BadmintonScheduler {
             }, { passive: true });
         });
     }
-    
-    // Enhanced touch event handlers for mobile drag and drop
-    handleTouchStart(e, type) {
-        const touch = e.touches[0];
-        const target = e.target.closest('.player-card, .pair-card');
-        
-        if (target) {
-            e.preventDefault();
-            this.touchItem = { type, id: target.getAttribute('data-id') };
-            target.classList.add('dragging');
-            
-            // Add haptic feedback if available
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
-            
-            // Create a ghost image for visual feedback
-            const ghost = target.cloneNode(true);
-            ghost.style.position = 'fixed';
-            ghost.style.pointerEvents = 'none';
-            ghost.style.opacity = '0.9';
-            ghost.style.zIndex = '1000';
-            ghost.style.transform = 'scale(1.1)';
-            ghost.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
-            ghost.style.borderRadius = '12px';
-            ghost.id = 'touch-ghost';
-            document.body.appendChild(ghost);
-            
-            this.updateGhostPosition(touch.clientX, touch.clientY);
-            
-            // Store touch start position for better gesture detection
-            this.touchStartX = touch.clientX;
-            this.touchStartY = touch.clientY;
-            this.touchStartTime = Date.now();
-        }
+
+// Rendering
+render() {
+    this.renderPlayers();
+    this.renderPairs();
+    this.renderSessions();
+    this.updatePairSelectOptions();
+}
+
+renderPlayers() {
+    if (this.players.length === 0) {
+        this.elements.playersList.innerHTML = '<p class="text-gray-300 text-center py-4">No players added yet</p>';
+        return;
     }
-    
-    handleTouchMove(e) {
-        if (!this.touchItem) return;
-        
-        e.preventDefault();
-        const touch = e.touches[0];
-        this.updateGhostPosition(touch.clientX, touch.clientY);
-        
-        // Highlight drop zones with better visual feedback
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const dropZone = elementBelow?.closest('.session-slot');
-        
-        document.querySelectorAll('.session-slot').forEach(slot => {
-            slot.classList.remove('drag-over');
-        });
-        
-        if (dropZone) {
-            dropZone.classList.add('drag-over');
-            // Add haptic feedback when over valid drop zone
-            if (navigator.vibrate && !this.lastVibrateTime || Date.now() - this.lastVibrateTime > 200) {
-                navigator.vibrate(30);
-                this.lastVibrateTime = Date.now();
-            }
-        }
-    }
-    
-    handleTouchEnd(e) {
-        if (!this.touchItem) return;
-        
-        const touch = e.changedTouches[0];
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const dropZone = elementBelow?.closest('.session-slot');
-        
-        // Calculate touch duration and distance for gesture detection
-        const touchDuration = Date.now() - this.touchStartTime;
-        const touchDistance = Math.sqrt(
-            Math.pow(touch.clientX - this.touchStartX, 2) + 
-            Math.pow(touch.clientY - this.touchStartY, 2)
-        );
-        
-        // Remove ghost image with animation
-        const ghost = document.getElementById('touch-ghost');
-        if (ghost) {
-            ghost.style.transition = 'all 0.2s ease-out';
-            ghost.style.opacity = '0';
-            ghost.style.transform = 'scale(0.8)';
-            setTimeout(() => ghost.remove(), 200);
-        }
-        
-        // Remove dragging class
-        document.querySelectorAll('.player-card, .pair-card').forEach(card => {
-            card.classList.remove('dragging');
-        });
-        
-        // Handle drop with haptic feedback
-        if (dropZone && touchDistance > 10) { // Minimum distance to consider it a drag
-            this.handleTouchDrop({ target: dropZone });
-            if (navigator.vibrate) {
-                navigator.vibrate([50, 50, 50]); // Success vibration pattern
-            }
-        }
-        
-        // Clear drop zone highlights
-        document.querySelectorAll('.session-slot').forEach(slot => {
-            slot.classList.remove('drag-over');
-        });
-        
-        this.touchItem = null;
-        this.touchStartX = null;
-        this.touchStartY = null;
-        this.touchStartTime = null;
-        this.lastVibrateTime = null;
-    }
-    
-    updateGhostPosition(x, y) {
-        const ghost = document.getElementById('touch-ghost');
-        if (ghost) {
-            // Add smooth transition and better positioning
-            ghost.style.transition = 'none';
+
+    this.elements.playersList.innerHTML = this.players.map(player => `
+        <div class="player-card" data-id="${player.id}" data-type="player">
+            <div class="flex justify-between items-center">
+                <div class="flex-1">
+                    <div class="font-semibold text-gray-800">${player.name}</div>
+                    <div class="text-sm text-gray-600">
+                        <span class="inline-block px-2 py-1 bg-${this.getSkillColor(player.skill)}-100 text-${this.getSkillColor(player.skill)}-800 text-xs rounded-full">
+                            ${player.skill}
+                        </span>
             ghost.style.left = (x - ghost.offsetWidth / 2) + 'px';
             ghost.style.top = (y - ghost.offsetHeight / 2) + 'px';
         }
