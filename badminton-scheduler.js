@@ -497,111 +497,14 @@ class BadmintonScheduler {
         this.showNotification('All sessions cleared', 'success');
     }
     
-    // Drag and drop functionality
+    // Drag and drop functionality removed - using dropdown method instead
     setupDragAndDrop() {
-        // Setup drag for players
-        document.querySelectorAll('.player-card').forEach(card => {
-            card.addEventListener('dragstart', (e) => this.handleDragStart(e, 'player'));
-            card.addEventListener('dragend', (e) => this.handleDragEnd(e));
-            // Touch events for mobile
-            card.addEventListener('touchstart', (e) => this.handleTouchStart(e, 'player'), { passive: false });
-            card.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-            card.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
-        });
-        
-        // Setup drag for pairs
-        document.querySelectorAll('.pair-card').forEach(card => {
-            card.addEventListener('dragstart', (e) => this.handleDragStart(e, 'pair'));
-            card.addEventListener('dragend', (e) => this.handleDragEnd(e));
-            // Touch events for mobile
-            card.addEventListener('touchstart', (e) => this.handleTouchStart(e, 'pair'), { passive: false });
-            card.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-            card.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
-        });
-        
         // Setup delete button touch events for mobile
         this.setupDeleteButtonTouchEvents();
-        
-        // Setup drop zones for session slots
-        document.querySelectorAll('.session-slot').forEach(slot => {
-            slot.addEventListener('dragover', (e) => this.handleDragOver(e));
-            slot.addEventListener('drop', (e) => this.handleDrop(e));
-            slot.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-            // Touch events for mobile
-            slot.addEventListener('touchmove', (e) => this.handleTouchOver(e), { passive: false });
-            slot.addEventListener('touchend', (e) => this.handleTouchDrop(e), { passive: false });
-        });
     }
     
-    handleDragStart(e, type) {
-        const id = e.target.getAttribute('data-id');
-        this.draggedItem = { type, id };
-        e.target.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-    }
-    
-    handleDragEnd(e) {
-        e.target.classList.remove('dragging');
-        document.querySelectorAll('.session-slot').forEach(slot => {
-            slot.classList.remove('drag-over');
-        });
-    }
-    
-    handleDragOver(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        e.currentTarget.classList.add('drag-over');
-    }
-    
-    handleDragLeave(e) {
-        e.currentTarget.classList.remove('drag-over');
-    }
-    
-    handleDrop(e) {
-        e.preventDefault();
-        e.currentTarget.classList.remove('drag-over');
         
-        const slotData = JSON.parse(e.currentTarget.getAttribute('data-slot'));
         
-        if (!this.draggedItem) return;
-        
-        const { sessionId, courtId, matchIndex } = slotData;
-        const session = this.sessions.find(s => s.id === sessionId);
-        const court = session.courtsData.find(c => c.id === courtId);
-        
-        if (this.draggedItem.type === 'player') {
-            const player = this.players.find(p => p.id === this.draggedItem.id);
-            if (!court.matches[matchIndex]) {
-                court.matches[matchIndex] = { players: [], type: 'singles' };
-            }
-            
-            // Add player to match (max 2 for singles, 4 for doubles)
-            if (court.matches[matchIndex].players.length < 2) {
-                court.matches[matchIndex].players.push(player);
-                this.showNotification(`${player.name} added to match`, 'success');
-            } else {
-                this.showNotification('Match is full (2 players for singles)', 'error');
-            }
-        } else if (this.draggedItem.type === 'pair') {
-            const pair = this.pairs.find(p => p.id === this.draggedItem.id);
-            if (!court.matches[matchIndex]) {
-                court.matches[matchIndex] = { pairs: [], type: 'doubles' };
-            }
-            
-            // Add pair to match (max 2 pairs for doubles)
-            if (court.matches[matchIndex].pairs.length < 2) {
-                court.matches[matchIndex].pairs.push(pair);
-                this.showNotification(`${pair.name} added to match`, 'success');
-            } else {
-                this.showNotification('Match is full (2 pairs for doubles)', 'error');
-            }
-        }
-        
-        this.saveSessions();
-        this.render();
-        this.draggedItem = null;
-    }
-    
     removeFromMatch(sessionId, courtId, matchIndex, itemType, itemId) {
         const session = this.sessions.find(s => s.id === sessionId);
         const court = session.courtsData.find(c => c.id === courtId);
@@ -1046,54 +949,6 @@ class BadmintonScheduler {
         this.lastVibrateTime = null;
     }
     
-    handleTouchOver(e) {
-        if (!this.touchItem) return;
-        e.preventDefault();
-        e.currentTarget.classList.add('drag-over');
-    }
-    
-    handleTouchDrop(e) {
-        if (!this.touchItem) return;
-        
-        e.preventDefault();
-        e.currentTarget.classList.remove('drag-over');
-        
-        const slotData = JSON.parse(e.currentTarget.getAttribute('data-slot'));
-        const { sessionId, courtId, matchIndex } = slotData;
-        const session = this.sessions.find(s => s.id === sessionId);
-        const court = session.courtsData.find(c => c.id === courtId);
-        
-        if (this.touchItem.type === 'player') {
-            const player = this.players.find(p => p.id === this.touchItem.id);
-            if (!court.matches[matchIndex]) {
-                court.matches[matchIndex] = { players: [], type: 'singles' };
-            }
-            
-            if (court.matches[matchIndex].players.length < 2) {
-                court.matches[matchIndex].players.push(player);
-                this.showNotification(`${player.name} added to match`, 'success');
-            } else {
-                this.showNotification('Match is full (2 players for singles)', 'error');
-            }
-        } else if (this.touchItem.type === 'pair') {
-            const pair = this.pairs.find(p => p.id === this.touchItem.id);
-            if (!court.matches[matchIndex]) {
-                court.matches[matchIndex] = { pairs: [], type: 'doubles' };
-            }
-            
-            if (court.matches[matchIndex].pairs.length < 2) {
-                court.matches[matchIndex].pairs.push(pair);
-                this.showNotification(`${pair.name} added to match`, 'success');
-            } else {
-                this.showNotification('Match is full (2 pairs for doubles)', 'error');
-            }
-        }
-        
-        this.saveSessions();
-        this.render();
-        this.touchItem = null;
-    }
-    
     updateGhostPosition(x, y) {
         const ghost = document.getElementById('touch-ghost');
         if (ghost) {
@@ -1119,7 +974,7 @@ class BadmintonScheduler {
         }
         
         this.elements.playersList.innerHTML = this.players.map(player => `
-            <div class="player-card" draggable="true" data-id="${player.id}" data-type="player">
+            <div class="player-card" data-id="${player.id}" data-type="player">
                 <div class="flex justify-between items-center">
                     <div class="flex-1">
                         <div class="font-semibold text-gray-800">${player.name}</div>
@@ -1147,7 +1002,7 @@ class BadmintonScheduler {
         }
         
         this.elements.pairsList.innerHTML = this.pairs.map(pair => `
-            <div class="pair-card" draggable="true" data-id="${pair.id}" data-type="pair">
+            <div class="pair-card" data-id="${pair.id}" data-type="pair">
                 <div class="flex justify-between items-center">
                     <div>
                         <div class="font-semibold">${pair.name}</div>
@@ -1202,8 +1057,8 @@ class BadmintonScheduler {
             </div>
         `).join('');
         
-        // Setup drag and drop after rendering
-        setTimeout(() => this.setupDragAndDrop(), 100);
+        // Setup delete events after rendering
+        setTimeout(() => this.setupDeleteButtonTouchEvents(), 100);
     }
     
     renderCourt(session, court) {
