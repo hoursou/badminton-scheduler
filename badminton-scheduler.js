@@ -768,6 +768,8 @@ class BadmintonScheduler {
     
     // Add pair to session via dropdown
     addPairToSession(sessionId, courtId, matchIndex) {
+        console.log('Adding pair to session:', { sessionId, courtId, matchIndex });
+        
         const selectElement = document.getElementById(`pair-select-${sessionId}-${courtId}`);
         const selectedPairId = selectElement.value;
         
@@ -785,12 +787,28 @@ class BadmintonScheduler {
         const session = this.sessions.find(s => s.id === sessionId);
         const court = session.courtsData.find(c => c.id === courtId);
         
-        // Add the pair to the match
+        console.log('Found session and court:', { session, court });
+        
+        // Initialize matches array if it doesn't exist
+        if (!court.matches) {
+            court.matches = [];
+        }
+        
+        // Add the pair to the match - create new match if needed
         if (!court.matches[matchIndex]) {
             court.matches[matchIndex] = { pairs: [], players: [] };
         }
         
+        // Check if pair is already in this match
+        const alreadyInMatch = court.matches[matchIndex].pairs.some(p => p.id === selectedPair.id);
+        if (alreadyInMatch) {
+            this.showNotification('Pair already added to this match', 'error');
+            return;
+        }
+        
         court.matches[matchIndex].pairs.push(selectedPair);
+        
+        console.log('Updated court matches:', court.matches);
         
         // Save and re-render
         this.saveSessions();
@@ -994,7 +1012,7 @@ class BadmintonScheduler {
                             </span>
                         </div>
                     </div>
-                    <button onclick="scheduler.removePlayer('${player.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center">
+                    <button onclick="scheduler.removePlayer('${player.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center touch-manipulation">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -1015,8 +1033,8 @@ class BadmintonScheduler {
                         <div class="font-semibold">${pair.name}</div>
                         <div class="text-sm opacity-90">${pair.player1Name} & ${pair.player2Name}</div>
                     </div>
-                    <button onclick="scheduler.removePair('${pair.id}')" class="text-white hover:text-red-200">
-                        <i class="fas fa-times"></i>
+                    <button onclick="scheduler.removePair('${pair.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm min-w-[44px] h-[44px] flex items-center justify-center touch-manipulation">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
