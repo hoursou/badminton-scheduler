@@ -727,6 +727,13 @@ class BadmintonScheduler {
             return;
         }
         
+        // Check for player conflicts
+        const conflict = this.checkPlayerConflict(selectedPair, targetMatch);
+        if (conflict) {
+            this.showNotification(`Conflict: Player ${conflict.player} cannot play on both sides of the match (${conflict.existingPair} vs ${conflict.newPair})`, 'error');
+            return;
+        }
+        
         targetMatch.pairs.push(selectedPair);
         
         console.log('Updated court matches:', court.matches);
@@ -740,6 +747,40 @@ class BadmintonScheduler {
         
         const pairCount = targetMatch.pairs.length;
         this.showNotification(`Added ${selectedPair.name} to ${court.name} (${pairCount}/2 pairs)`, 'success');
+    }
+    
+    checkPlayerConflict(newPair, existingMatch) {
+        if (!existingMatch || !existingMatch.pairs || existingMatch.pairs.length === 0) {
+            return null;
+        }
+        
+        // Get players from the new pair
+        const newPairPlayers = [newPair.player1Id, newPair.player2Id];
+        
+        // Check each existing pair in the match
+        for (const existingPair of existingMatch.pairs) {
+            const existingPairPlayers = [existingPair.player1Id, existingPair.player2Id];
+            
+            // Check for any overlapping players
+            for (const playerId of newPairPlayers) {
+                if (existingPairPlayers.includes(playerId)) {
+                    // Found a conflict
+                    const playerName = this.getPlayerName(playerId);
+                    return {
+                        player: playerName,
+                        existingPair: existingPair.name,
+                        newPair: newPair.name
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    getPlayerName(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        return player ? player.name : 'Unknown';
     }
     
     setupDeleteButtonTouchEvents() {
