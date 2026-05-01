@@ -797,19 +797,34 @@ class BadmintonScheduler {
             court.matches = [];
         }
         
-        // Add the pair to the match - create new match if needed
-        if (!court.matches[matchIndex]) {
-            court.matches[matchIndex] = { pairs: [], players: [] };
+        // Find an available match slot or create a new one
+        let targetMatch = null;
+        let targetIndex = -1;
+        
+        // Look for a match with less than 2 pairs
+        for (let i = 0; i < court.matches.length; i++) {
+            if (court.matches[i] && court.matches[i].pairs && court.matches[i].pairs.length < 2) {
+                targetMatch = court.matches[i];
+                targetIndex = i;
+                break;
+            }
+        }
+        
+        // If no available match found, create a new one
+        if (!targetMatch) {
+            targetIndex = court.matches.length;
+            court.matches[targetIndex] = { pairs: [], players: [] };
+            targetMatch = court.matches[targetIndex];
         }
         
         // Check if pair is already in this match
-        const alreadyInMatch = court.matches[matchIndex].pairs.some(p => p.id === selectedPair.id);
+        const alreadyInMatch = targetMatch.pairs.some(p => p.id === selectedPair.id);
         if (alreadyInMatch) {
             this.showNotification('Pair already added to this match', 'error');
             return;
         }
         
-        court.matches[matchIndex].pairs.push(selectedPair);
+        targetMatch.pairs.push(selectedPair);
         
         console.log('Updated court matches:', court.matches);
         
@@ -820,7 +835,8 @@ class BadmintonScheduler {
         // Reset dropdown
         selectElement.value = '';
         
-        this.showNotification(`Added ${selectedPair.name} to ${court.name}`, 'success');
+        const pairCount = targetMatch.pairs.length;
+        this.showNotification(`Added ${selectedPair.name} to ${court.name} (${pairCount}/2 pairs)`, 'success');
     }
     
     setupDeleteButtonTouchEvents() {
@@ -837,6 +853,86 @@ class BadmintonScheduler {
             button.addEventListener('touchend', (e) => {
                 e.stopPropagation();
                 button.style.transform = 'scale(1)';
+            }, { passive: true });
+        });
+    }
+    
+    setupSwipeToDelete() {
+        const cards = document.querySelectorAll('.player-card, .pair-card');
+        
+        cards.forEach(card => {
+            let startX = 0;
+            let currentX = 0;
+            let isSwiping = false;
+            let deleteThreshold = 100; // Swipe distance to trigger delete
+            
+            card.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isSwiping = true;
+                card.style.transition = 'none';
+            }, { passive: true });
+            
+            card.addEventListener('touchmove', (e) => {
+                if (!isSwiping) return;
+                
+                currentX = e.touches[0].clientX;
+                const deltaX = currentX - startX;
+                
+                // Only allow left swipe (negative deltaX)
+                if (deltaX < 0) {
+                    card.style.transform = `translateX(${deltaX}px)`;
+                    card.style.opacity = 1 + (deltaX / 200); // Fade out as swipe progresses
+                    
+                    // Prevent default scrolling when swiping
+                    if (Math.abs(deltaX) > 20) {
+                        e.preventDefault();
+                    }
+                }
+            }, { passive: false });
+            
+            card.addEventListener('touchend', (e) => {
+                if (!isSwiping) return;
+                
+                const deltaX = currentX - startX;
+                const cardType = card.getAttribute('data-type');
+                const cardId = card.getAttribute('data-id');
+                
+                // Reset transition
+                card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+                
+                if (Math.abs(deltaX) > deleteThreshold && deltaX < 0) {
+                    // Swipe threshold reached - delete the item
+                    card.style.transform = 'translateX(-100%)';
+                    card.style.opacity = '0';
+                    
+                    // Add haptic feedback
+                    if (navigator.vibrate) {
+                        navigator.vibrate([50, 50, 50]);
+                    }
+                    
+                    // Delete after animation
+                    setTimeout(() => {
+                        if (cardType === 'player') {
+                            this.removePlayer(cardId);
+                        } else if (cardType === 'pair') {
+                            this.removePair(cardId);
+                        }
+                    }, 300);
+                } else {
+                    // Snap back to original position
+                    card.style.transform = 'translateX(0)';
+                    card.style.opacity = '1';
+                }
+                
+                isSwiping = false;
+            }, { passive: true });
+            
+            card.addEventListener('touchcancel', () => {
+                // Reset on touch cancel
+                card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+                card.style.transform = 'translateX(0)';
+                card.style.opacity = '1';
+                isSwiping = false;
             }, { passive: true });
         });
     }
@@ -1023,7 +1119,7 @@ class BadmintonScheduler {
         }
         
         this.elements.playersList.innerHTML = this.players.map(player => `
-            <div class="player-card" draggable="true" data-id="${player.id}">
+            <div class="player-card" draggable="true" data-id="${player.id}" data-type="player">
                 <div class="flex justify-between items-center">
                     <div class="flex-1">
                         <div class="font-semibold text-gray-800">${player.name}</div>
@@ -1039,6 +1135,9 @@ class BadmintonScheduler {
                 </div>
             </div>
         `).join('');
+        
+        // Setup swipe-to-delete after rendering
+        setTimeout(() => this.setupSwipeToDelete(), 100);
     }
     
     renderPairs() {
@@ -1048,7 +1147,7 @@ class BadmintonScheduler {
         }
         
         this.elements.pairsList.innerHTML = this.pairs.map(pair => `
-            <div class="pair-card" draggable="true" data-id="${pair.id}">
+            <div class="pair-card" draggable="true" data-id="${pair.id}" data-type="pair">
                 <div class="flex justify-between items-center">
                     <div>
                         <div class="font-semibold">${pair.name}</div>
@@ -1060,6 +1159,9 @@ class BadmintonScheduler {
                 </div>
             </div>
         `).join('');
+        
+        // Setup swipe-to-delete after rendering
+        setTimeout(() => this.setupSwipeToDelete(), 100);
     }
     
     renderSessions() {
