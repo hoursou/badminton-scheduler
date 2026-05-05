@@ -1082,41 +1082,13 @@ class BadmintonScheduler {
     }
 
 // Rendering
-render() {
-    this.renderPlayers();
-    this.renderPairs();
-    this.renderSessions();
-    this.updatePairSelectOptions();
-}
-
-renderPlayers() {
-    if (this.players.length === 0) {
-        this.elements.playersList.innerHTML = '<p class="text-gray-300 text-center py-4">No players added yet</p>';
-        return;
-    }
-
-    this.elements.playersList.innerHTML = this.players.map(player => `
-        <div class="player-card" data-id="${player.id}" data-type="player">
-            <div class="flex justify-between items-center">
-                <div class="flex-1">
-                    <div class="font-semibold text-gray-800">${player.name}</div>
-                    <div class="text-sm text-gray-600">
-                        <span class="inline-block px-2 py-1 bg-${this.getSkillColor(player.skill)}-100 text-${this.getSkillColor(player.skill)}-800 text-xs rounded-full">
-                            ${player.skill}
-                        </span>
-            ghost.style.left = (x - ghost.offsetWidth / 2) + 'px';
-            ghost.style.top = (y - ghost.offsetHeight / 2) + 'px';
-        }
-    }
-    
-    // Rendering
     render() {
         this.renderPlayers();
         this.renderPairs();
         this.renderSessions();
         this.updatePairSelectOptions();
     }
-    
+
     renderPlayers() {
         if (this.players.length === 0) {
             this.elements.playersList.innerHTML = '<p class="text-gray-300 text-center py-4">No players added yet</p>';
@@ -1144,7 +1116,7 @@ renderPlayers() {
         // Setup swipe-to-delete after rendering
         setTimeout(() => this.setupSwipeToDelete(), 100);
     }
-    
+
     renderPairs() {
         if (this.pairs.length === 0) {
             this.elements.pairsList.innerHTML = '<p class="text-gray-300 text-center py-4">No pairs created yet</p>';
