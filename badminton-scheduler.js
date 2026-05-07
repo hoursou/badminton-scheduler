@@ -730,11 +730,23 @@ class BadmintonScheduler {
             return;
         }
         
-        // Check for player conflicts
+        // Check for player conflicts within same match
         const conflict = this.checkPlayerConflict(selectedPair, targetMatch);
         if (conflict) {
             this.showNotification(`Conflict: Player ${conflict.player} cannot play on both sides of the match (${conflict.existingPair} vs ${conflict.newPair})`, 'error');
             return;
+        }
+        
+        // Check for player availability conflicts across all courts in this session
+        const availabilityConflict = this.checkPlayerAvailabilityConflict(session, selectedPair, courtId);
+        if (availabilityConflict) {
+            const confirmMessage = `Warning: Players ${availabilityConflict.players.join(', ')} are already scheduled in Court ${availabilityConflict.conflictingCourt} at the same time. This may cause availability issues.\n\nDo you want to continue?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            this.showNotification(`Players double-booked across courts. Please verify availability.`, 'warning');
         }
         
         targetMatch.pairs.push(selectedPair);
@@ -776,6 +788,53 @@ class BadmintonScheduler {
                     };
                 }
             }
+        }
+        
+        return null;
+    }
+    
+    checkPlayerAvailabilityConflict(session, newPair, currentCourtId) {
+        const newPairPlayers = [newPair.player1Id, newPair.player2Id];
+        const conflictingPlayers = [];
+        let conflictingCourt = null;
+        
+        // Check all courts in the session except the current one
+        for (const court of session.courtsData) {
+            if (court.id === currentCourtId) continue;
+            
+            // Check all matches in this court
+            for (const match of court.matches || []) {
+                if (match.pairs) {
+                    for (const pair of match.pairs) {
+                        // Check if any player from new pair is already in this court
+                        if (newPairPlayers.includes(pair.player1Id) || newPairPlayers.includes(pair.player2Id)) {
+                            conflictingCourt = court.name;
+                            
+                            // Add conflicting player names
+                            if (newPairPlayers.includes(pair.player1Id)) {
+                                const playerName = this.getPlayerName(pair.player1Id);
+                                if (!conflictingPlayers.includes(playerName)) {
+                                    conflictingPlayers.push(playerName);
+                                }
+                            }
+                            if (newPairPlayers.includes(pair.player2Id)) {
+                                const playerName = this.getPlayerName(pair.player2Id);
+                                if (!conflictingPlayers.includes(playerName)) {
+                                    conflictingPlayers.push(playerName);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Return conflict info if any conflicts found
+        if (conflictingPlayers.length > 0) {
+            return {
+                players: conflictingPlayers,
+                conflictingCourt: conflictingCourt
+            };
         }
         
         return null;
